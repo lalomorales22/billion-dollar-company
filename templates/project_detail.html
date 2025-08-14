@@ -1,0 +1,587 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Billion Dollar Company{% endblock %}
+
+{% block content %}
+<style>
+/* Modal styles */
+.modal {
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    width: auto;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal .window {
+    min-width: 600px;
+    max-width: 900px;
+    width: 100%;
+    background: var(--mac-white);
+    border: 2px solid var(--mac-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    position: relative;
+    transform: scale(1);
+    transition: all 0.2s ease-in-out;
+}
+
+.modal .window-content {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+/* Additional modal improvements */
+.modal[style*="display: flex"] {
+    animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal[style*="display: flex"] .window {
+    animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: scale(0.9) translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Prevent text selection and focus issues */
+.modal * {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+}
+
+/* Ensure proper layering and prevent glitches */
+body.modal-open {
+    overflow: hidden !important;
+    position: fixed;
+    width: 100%;
+}
+
+/* Fix for webkit rendering issues */
+.modal {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+.modal .window {
+    will-change: transform, opacity;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+</style>
+<div class="window">
+    <div class="window-bar">
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-title">📁 {{ project.name }}</div>
+    </div>
+    <div class="window-content">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+            <div>
+                <h1 style="font-size: 24px; margin-bottom: 10px;">{{ project.name }}</h1>
+                <p style="color: var(--mac-dark-gray);">{{ project.description or 'No description' }}</p>
+            </div>
+            <div style="text-align: right;">
+                <div class="badge badge-info" style="font-size: 14px; padding: 8px 12px;">
+                    Stage {{ project.stage }}/6
+                    {% if project.stage < 6 %}
+                        <span id="auto-run-indicator" style="display: none; margin-left: 8px;">🤖 Auto-Running</span>
+                    {% endif %}
+                </div>
+                <div style="margin-top: 10px;">
+                    {% if project.status == 'idea' %}
+                        <span class="badge">{{ project.status }}</span>
+                    {% elif project.status in ['validating', 'developing'] %}
+                        <span class="badge badge-warning">{{ project.status }}</span>
+                    {% elif project.status in ['operating', 'scaling'] %}
+                        <span class="badge badge-success">{{ project.status }}</span>
+                    {% else %}
+                        <span class="badge badge-danger">{{ project.status }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-4" style="margin-bottom: 30px;">
+            <div class="card">
+                <div class="card-body" style="text-align: center;">
+                    <div style="font-size: 10px; color: var(--mac-dark-gray); margin-bottom: 5px;">PROGRESS</div>
+                    <div style="font-size: 24px; font-weight: bold;">{{ project.completion_percentage }}%</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body" style="text-align: center;">
+                    <div style="font-size: 10px; color: var(--mac-dark-gray); margin-bottom: 5px;">EST. REVENUE</div>
+                    <div style="font-size: 24px; font-weight: bold;">${{ "{:,.0f}".format(project.estimated_revenue) }}</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body" style="text-align: center;">
+                    <div style="font-size: 10px; color: var(--mac-dark-gray); margin-bottom: 5px;">DEV COST</div>
+                    <div style="font-size: 24px; font-weight: bold;">${{ "{:,.2f}".format(project.development_cost) }}</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body" style="text-align: center;">
+                    <div style="font-size: 10px; color: var(--mac-dark-gray); margin-bottom: 5px;">ACTIVE TASKS</div>
+                    <div style="font-size: 24px; font-weight: bold;">{{ tasks|selectattr("status", "equalto", "processing")|list|length }}</div>
+                </div>
+            </div>
+        </div>
+        
+        {% if project.stage < 6 %}
+        <div style="text-align: center; margin-bottom: 30px;">
+            <button onclick="advanceStage()" class="btn btn-primary" style="font-size: 14px;">
+                ⚡ Advance to Stage {{ project.stage + 1 }}
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="window">
+        <div class="window-bar">
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-title">📋 Tasks</div>
+        </div>
+        <div class="window-content">
+            {% if tasks %}
+            <div id="tasks-list" style="max-height: 400px; overflow-y: auto;">
+                {% for task in tasks %}
+                <div class="card" style="margin-bottom: 10px;">
+                    <div class="card-body" style="padding: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <div style="font-weight: bold; font-size: 13px;">{{ task.title }}</div>
+                                <div style="font-size: 11px; color: var(--mac-dark-gray); margin-top: 5px;">
+                                    Stage {{ task.stage }} • 
+                                    {% if task.assigned_agent %}
+                                        {{ task.assigned_agent.icon }} {{ task.assigned_agent.name }}
+                                    {% else %}
+                                        Unassigned
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div>
+                                {% if task.status == 'pending' %}
+                                    <span class="badge">Pending</span>
+                                {% elif task.status == 'processing' %}
+                                    <span class="badge badge-warning">Processing</span>
+                                {% elif task.status == 'completed' %}
+                                    <span class="badge badge-success">Complete</span>
+                                {% else %}
+                                    <span class="badge badge-danger">{{ task.status }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; color: var(--mac-dark-gray); padding: 20px;">No tasks yet</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="window">
+        <div class="window-bar">
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-title">🤖 Agent Activity</div>
+        </div>
+        <div class="window-content">
+            {% if executions %}
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for execution in executions %}
+                <div class="card" style="margin-bottom: 10px;">
+                    <div class="card-body" style="padding: 10px;">
+                        <div style="display: flex; gap: 10px; align-items: start; cursor: pointer;" onclick="showOutputModal({{ execution.id }})">
+                            <span style="font-size: 20px;">{{ execution.agent.icon }}</span>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; font-size: 12px;">{{ execution.agent.name }}</div>
+                                <div style="font-size: 11px; color: var(--mac-dark-gray); margin-top: 3px;">
+                                    {{ execution.created_at.strftime('%Y-%m-%d %H:%M') }} • 
+                                    {{ execution.duration_ms }}ms • 
+                                    ${{ "%.4f"|format(execution.cost or 0) }}
+                                </div>
+                                {% if execution.success and execution.output_response %}
+                                <div style="font-size: 10px; color: var(--mac-blue); margin-top: 2px;">
+                                    🔍 Click to view output
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if execution.success %}
+                                <span class="badge badge-success" style="font-size: 10px;">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="font-size: 10px;">✗</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Modal for this execution -->
+                        <div id="output-modal-{{ execution.id }}" class="modal" style="display: none;">
+                            <div class="modal-content">
+                                <div class="window">
+                                    <div class="window-bar">
+                                        <div class="window-button"></div>
+                                        <div class="window-button"></div>
+                                        <div class="window-button"></div>
+                                        <div class="window-title">{{ execution.agent.icon }} {{ execution.agent.name }} Output</div>
+                                    </div>
+                                    <div class="window-content" style="max-height: 80vh; overflow-y: auto;">
+                                        <div style="margin-bottom: 15px;">
+                                            <strong>Executed:</strong> {{ execution.created_at.strftime('%Y-%m-%d %H:%M:%S') }}<br>
+                                            <strong>Duration:</strong> {{ execution.duration_ms }}ms<br>
+                                            <strong>Cost:</strong> ${{ "%.4f"|format(execution.cost or 0) }}<br>
+                                            <strong>Tokens:</strong> {{ execution.tokens_used or 0 }}
+                                        </div>
+                                        <hr>
+                                        {% if execution.success %}
+                                        <div style="margin-top: 15px;">
+                                            <h4>Output:</h4>
+                                            <div style="background: var(--mac-light-gray); padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; font-size: 12px; line-height: 1.4;">{{ execution.output_response or 'No output generated' }}</div>
+                                        </div>
+                                        {% else %}
+                                        <div style="margin-top: 15px;">
+                                            <h4>Error:</h4>
+                                            <div style="background: #ffe6e6; padding: 15px; border-radius: 5px; color: #cc0000;">{{ execution.error_message or 'Unknown error' }}</div>
+                                        </div>
+                                        {% endif %}
+                                        <div style="text-align: center; margin-top: 20px;">
+                                            <button onclick="closeModal({{ execution.id }})" class="btn">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; color: var(--mac-dark-gray); padding: 20px;">No agent activity yet</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="window" style="margin-top: 20px;">
+    <div class="window-bar">
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-title">💾 Project Artifacts</div>
+    </div>
+    <div class="window-content">
+        {% if artifacts %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for artifact in artifacts %}
+                <tr>
+                    <td>{{ artifact.type }}</td>
+                    <td>{{ artifact.name }}</td>
+                    <td>{{ artifact.description or '-' }}</td>
+                    <td>{{ artifact.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% if artifact.url %}
+                        <a href="{{ artifact.url }}" target="_blank" class="btn" style="padding: 4px 8px; font-size: 11px;">View</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="text-align: center; color: var(--mac-dark-gray); padding: 20px;">No artifacts generated yet</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Wait for socket to be initialized from base template
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if socket exists (from base.html)
+    if (typeof socket !== 'undefined') {
+        // Subscribe to project updates
+        socket.emit('subscribe_project', {project_id: {{ project.id }}});
+    }
+});
+
+function advanceStage() {
+    if (confirm('Advance project to the next stage? This will trigger all agents for the next stage.')) {
+        const btn = event.target;
+        btn.innerHTML = '<span class="loading"></span> Processing...';
+        btn.disabled = true;
+        
+        fetch(`/api/projects/{{ project.id }}/advance`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.async) {
+                    // Use showNotification if available, otherwise use alert
+                    if (typeof showNotification !== 'undefined') {
+                        showNotification('🚀 ' + data.message, 'info');
+                    } else {
+                        alert(data.message);
+                    }
+                    // Check task status periodically
+                    checkTaskStatus(data.task_id);
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert(data.error || 'Failed to advance stage');
+                btn.innerHTML = '⚡ Advance to Stage {{ project.stage + 1 }}';
+                btn.disabled = false;
+            }
+        });
+    }
+}
+
+function checkTaskStatus(taskId) {
+    const interval = setInterval(() => {
+        fetch(`/api/tasks/${taskId}/status`)
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Task status check failed:', response.status);
+                    clearInterval(interval);
+                    // Reload anyway after error
+                    setTimeout(() => location.reload(), 2000);
+                    return null;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) {
+                    console.log('Task status:', data.state);
+                    if (data.state === 'SUCCESS' || data.state === 'FAILURE') {
+                        clearInterval(interval);
+                        if (data.state === 'FAILURE' && data.error) {
+                            alert('Task failed: ' + data.error);
+                        }
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking task status:', error);
+                clearInterval(interval);
+                // Reload anyway after error
+                setTimeout(() => location.reload(), 2000);
+            });
+    }, 2000);
+}
+
+function generateArtifact(type) {
+    if (confirm(`Generate ${type} artifact for this project?`)) {
+        fetch(`/api/projects/{{ project.id }}/artifacts/generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({type: type})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Use showNotification if available, otherwise use alert
+                if (typeof showNotification !== 'undefined') {
+                    showNotification(`📄 Generating ${type} artifact...`, 'info');
+                } else {
+                    alert(`Generating ${type} artifact...`);
+                }
+                checkTaskStatus(data.task_id);
+            } else {
+                alert(data.error || 'Failed to generate artifact');
+            }
+        });
+    }
+}
+
+// Add artifact generation buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Find the artifacts window by searching for the title text
+    const windowTitles = document.querySelectorAll('.window-title');
+    let artifactWindow = null;
+    
+    windowTitles.forEach(title => {
+        if (title.textContent.includes('Artifacts')) {
+            artifactWindow = title.closest('.window');
+        }
+    });
+    
+    if (artifactWindow) {
+        const windowContent = artifactWindow.querySelector('.window-content');
+        if (windowContent) {
+            const btnContainer = document.createElement('div');
+            btnContainer.style.marginBottom = '15px';
+            btnContainer.innerHTML = `
+                <button onclick="generateArtifact('code')" class="btn" style="margin-right: 10px;">Generate Code</button>
+                <button onclick="generateArtifact('documentation')" class="btn" style="margin-right: 10px;">Generate Docs</button>
+                <button onclick="generateArtifact('design')" class="btn" style="margin-right: 10px;">Generate Design</button>
+                <button onclick="generateArtifact('marketing')" class="btn">Generate Marketing</button>
+            `;
+            windowContent.insertBefore(btnContainer, windowContent.firstChild);
+        }
+    }
+});
+
+function showOutputModal(executionId) {
+    const modal = document.getElementById('output-modal-' + executionId);
+    if (modal) {
+        // Prevent body scrolling when modal is open
+        document.body.style.overflow = 'hidden';
+        document.body.classList.add('modal-open');
+        modal.style.display = 'flex';
+        
+        // Add click outside to close functionality
+        modal.onclick = function(e) {
+            if (e.target === modal) {
+                closeModal(executionId);
+            }
+        };
+        
+        // Prevent clicks inside modal content from closing modal
+        const modalWindow = modal.querySelector('.window');
+        if (modalWindow) {
+            modalWindow.onclick = function(e) {
+                e.stopPropagation();
+            };
+        }
+        
+        // Add escape key listener
+        document.addEventListener('keydown', function escapeHandler(e) {
+            if (e.key === 'Escape') {
+                closeModal(executionId);
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        });
+    }
+}
+
+function closeModal(executionId) {
+    const modal = document.getElementById('output-modal-' + executionId);
+    if (modal) {
+        // Restore body scrolling and position
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.classList.remove('modal-open');
+        modal.style.display = 'none';
+        
+        // Remove click handler
+        modal.onclick = null;
+    }
+}
+
+
+// Check if socket exists before setting up listeners
+if (typeof socket !== 'undefined') {
+    socket.on('task_created', function(data) {
+        const task = data.data;
+        const tasksList = document.getElementById('tasks-list');
+        if (tasksList) {
+            const taskCard = `
+                <div class="card" style="margin-bottom: 10px;" id="task-${task.id}">
+                    <div class="card-body" style="padding: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <div style="font-weight: bold; font-size: 13px;">${task.title}</div>
+                                <div style="font-size: 11px; color: var(--mac-dark-gray); margin-top: 5px;">
+                                    Stage ${task.stage} • ${task.agent.icon} ${task.agent.name}
+                                </div>
+                            </div>
+                            <div>
+                                <span class="badge">${task.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            tasksList.insertAdjacentHTML('afterbegin', taskCard);
+        }
+    });
+
+    socket.on('task_update', function(data) {
+        const taskElement = document.getElementById('task-' + data.task_id);
+        if (taskElement) {
+            const statusBadge = taskElement.querySelector('.badge');
+            statusBadge.textContent = data.status;
+            if (data.status === 'processing') {
+                statusBadge.className = 'badge badge-warning';
+            } else if (data.status === 'completed') {
+                statusBadge.className = 'badge badge-success';
+            } else if (data.status === 'failed') {
+                statusBadge.className = 'badge badge-danger';
+            }
+        }
+        if (data.status === 'completed' || data.status === 'failed') {
+            setTimeout(() => location.reload(), 1000);
+        }
+    });
+}
+</script>
+{% endblock %}

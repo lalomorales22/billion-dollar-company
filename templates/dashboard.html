@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Billion Dollar Company{% endblock %}
+
+{% block content %}
+<div class="window">
+    <div class="window-bar">
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-title">🎯 Command Center</div>
+    </div>
+    <div class="window-content">
+        <h1 style="font-size: 24px; margin-bottom: 20px;">Welcome back, {{ current_user.username }}!</h1>
+        
+        <div class="grid grid-4" style="margin-bottom: 30px;">
+            <div class="card">
+                <div class="card-header" style="background: var(--mac-purple); color: white;">
+                    📊 Total Projects
+                </div>
+                <div class="card-body">
+                    <h2 style="font-size: 32px;">{{ total_projects }}</h2>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header" style="background: var(--mac-green); color: white;">
+                    ⚡ Active Tasks
+                </div>
+                <div class="card-body">
+                    <h2 style="font-size: 32px;">{{ active_tasks }}</h2>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header" style="background: var(--mac-blue); color: white;">
+                    🤖 Active Agents
+                </div>
+                <div class="card-body">
+                    <h2 style="font-size: 32px;">{{ agents|length }}</h2>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header" style="background: var(--mac-orange); color: white;">
+                    💰 Total Cost
+                </div>
+                <div class="card-body">
+                    <h2 style="font-size: 32px;">$0.00</h2>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-bottom: 30px;">
+            <a href="{{ url_for('new_project') }}" class="btn btn-primary" style="font-size: 16px; padding: 12px 30px;">
+                🚀 Start New Project
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="window">
+        <div class="window-bar">
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-title">📁 Recent Projects</div>
+        </div>
+        <div class="window-content">
+            {% if projects %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Stage</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr onclick="window.location.href='{{ url_for('project_detail', project_id=project.id) }}'" style="cursor: pointer;">
+                        <td>{{ project.name }}</td>
+                        <td>
+                            <span class="badge badge-info">Stage {{ project.stage }}</span>
+                        </td>
+                        <td>
+                            {% if project.status == 'idea' %}
+                                <span class="badge">{{ project.status }}</span>
+                            {% elif project.status in ['validating', 'developing'] %}
+                                <span class="badge badge-warning">{{ project.status }}</span>
+                            {% elif project.status in ['operating', 'scaling'] %}
+                                <span class="badge badge-success">{{ project.status }}</span>
+                            {% else %}
+                                <span class="badge badge-danger">{{ project.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ project.created_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="text-align: center; color: var(--mac-dark-gray); padding: 40px 0;">
+                No projects yet. Start your first billion-dollar idea!
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="window">
+        <div class="window-bar">
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-title">🤖 Agent Status</div>
+        </div>
+        <div class="window-content">
+            <div class="grid grid-2" style="gap: 10px;">
+                {% for agent in agents[:6] %}
+                <div class="card" style="cursor: pointer;" onclick="window.location.href='{{ url_for('agent_detail', agent_id=agent.id) }}'">
+                    <div class="card-body" style="padding: 10px; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px;">{{ agent.icon }}</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; font-weight: bold;">{{ agent.name }}</div>
+                            <div style="font-size: 10px; color: var(--mac-dark-gray);">
+                                {% if agent.status == 'idle' %}
+                                    <span class="badge" style="background: var(--mac-gray);">Idle</span>
+                                {% elif agent.status == 'running' %}
+                                    <span class="badge badge-success">Running</span>
+                                {% else %}
+                                    <span class="badge badge-danger">{{ agent.status }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <a href="{{ url_for('agents') }}" class="btn" style="font-size: 12px;">View All Agents →</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="window" style="margin-top: 20px;">
+    <div class="window-bar">
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-title">📊 Recent Agent Activity</div>
+    </div>
+    <div class="window-content">
+        {% if recent_executions %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Agent</th>
+                    <th>Project</th>
+                    <th>Duration</th>
+                    <th>Cost</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for execution in recent_executions %}
+                <tr>
+                    <td>{{ execution.created_at.strftime('%H:%M:%S') }}</td>
+                    <td>
+                        <span style="font-size: 14px;">{{ execution.agent.icon }}</span>
+                        {{ execution.agent.name }}
+                    </td>
+                    <td>
+                        {% if execution.project %}
+                            {{ execution.project.name }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ execution.duration_ms }}ms</td>
+                    <td>${{ "%.4f"|format(execution.cost or 0) }}</td>
+                    <td>
+                        {% if execution.success %}
+                            <span class="badge badge-success">Success</span>
+                        {% else %}
+                            <span class="badge badge-danger">Failed</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="text-align: center; color: var(--mac-dark-gray); padding: 40px 0;">
+            No agent activity yet. Agents are standing by!
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Auto-refresh dashboard every 30 seconds
+setTimeout(function() {
+    location.reload();
+}, 30000);
+
+// Fetch system metrics
+fetch('/api/system/metrics')
+    .then(response => response.json())
+    .then(data => {
+        // Update cost display if element exists
+        const costElement = document.querySelector('.card-body h2');
+        if (costElement && data.total_cost !== undefined) {
+            costElement.textContent = '$' + data.total_cost.toFixed(2);
+        }
+    });
+</script>
+{% endblock %}

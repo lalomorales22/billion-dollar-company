@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Billion Dollar Company{% endblock %}
+
+{% block content %}
+<div style="max-width: 400px; margin: 60px auto;">
+    <div class="window">
+        <div class="window-bar">
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-title">🚀 Create Account</div>
+        </div>
+        <div class="window-content">
+            <form method="POST">
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required minlength="8">
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center;">
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                    <a href="{{ url_for('login') }}" style="font-size: 13px;">Already have an account?</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

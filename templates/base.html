@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Billion Dollar Company{% endblock %}</title>
+    
+    <style>
+        @font-face {
+            font-family: 'Chicago';
+            src: local('Geneva'), local('Helvetica'), local('Arial');
+            font-weight: normal;
+        }
+        
+        @font-face {
+            font-family: 'Monaco';
+            src: local('Monaco'), local('Courier New'), local('monospace');
+            font-weight: normal;
+        }
+
+        :root {
+            --mac-white: #FFFFFF;
+            --mac-black: #000000;
+            --mac-gray: #C0C0C0;
+            --mac-dark-gray: #808080;
+            --mac-light-gray: #DFDFDF;
+            --mac-window-bg: #ECECEC;
+            --mac-purple: #9370DB;
+            --mac-teal: #00CED1;
+            --mac-pink: #FF69B4;
+            --mac-green: #32CD32;
+            --mac-blue: #4169E1;
+            --mac-orange: #FF8C00;
+            --mac-red: #DC143C;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Chicago', Geneva, Arial, sans-serif;
+            background: var(--mac-white);
+            color: var(--mac-black);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(180deg, #fff 0%, #e0e0e0 100%);
+            border-bottom: 2px solid var(--mac-black);
+            padding: 12px 20px;
+            box-shadow: 0 1px 0 var(--mac-gray);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: -0.5px;
+            color: var(--mac-black);
+            text-decoration: none;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-menu a {
+            color: var(--mac-black);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 5px 10px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-menu a:hover {
+            background: var(--mac-black);
+            color: var(--mac-white);
+            border: 1px solid var(--mac-black);
+        }
+
+        .nav-menu a.active {
+            background: var(--mac-black);
+            color: var(--mac-white);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .window {
+            background: var(--mac-window-bg);
+            border: 2px solid var(--mac-black);
+            box-shadow: 2px 2px 0 var(--mac-black);
+            margin-bottom: 20px;
+        }
+
+        .window-bar {
+            background: linear-gradient(180deg, #fff 0%, #e0e0e0 100%);
+            border-bottom: 1px solid var(--mac-black);
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .window-button {
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--mac-black);
+            background: var(--mac-white);
+        }
+
+        .window-title {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .window-content {
+            padding: 20px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .btn {
+            background: var(--mac-white);
+            border: 2px solid var(--mac-black);
+            padding: 8px 20px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            color: var(--mac-black);
+        }
+
+        .btn:hover {
+            background: var(--mac-black);
+            color: var(--mac-white);
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0 var(--mac-gray);
+        }
+
+        .btn-primary {
+            background: var(--mac-black);
+            color: var(--mac-white);
+        }
+
+        .btn-primary:hover {
+            background: var(--mac-white);
+            color: var(--mac-black);
+        }
+
+        .btn-success {
+            background: var(--mac-green);
+            color: var(--mac-white);
+        }
+
+        .btn-danger {
+            background: var(--mac-red);
+            color: var(--mac-white);
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border: 2px solid var(--mac-black);
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: var(--mac-green);
+            color: var(--mac-white);
+        }
+
+        .alert-error {
+            background: var(--mac-red);
+            color: var(--mac-white);
+        }
+
+        .alert-info {
+            background: var(--mac-blue);
+            color: var(--mac-white);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid var(--mac-black);
+            font-family: 'Monaco', monospace;
+            font-size: 12px;
+            background: var(--mac-white);
+        }
+
+        .form-control:focus {
+            outline: none;
+            background: #f9f9f9;
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        .card {
+            background: var(--mac-white);
+            border: 2px solid var(--mac-black);
+            box-shadow: 2px 2px 0 var(--mac-black);
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0 var(--mac-black);
+        }
+
+        .card-header {
+            background: linear-gradient(180deg, #fff 0%, #e0e0e0 100%);
+            border-bottom: 1px solid var(--mac-black);
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .card-body {
+            padding: 15px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid var(--mac-black);
+        }
+
+        .table th {
+            background: var(--mac-light-gray);
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .table td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 200px;
+        }
+
+        /* Global text wrapping for all containers */
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+        }
+
+        code {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            border: 1px solid var(--mac-black);
+            background: var(--mac-white);
+        }
+
+        .badge-success {
+            background: var(--mac-green);
+            color: var(--mac-white);
+        }
+
+        .badge-warning {
+            background: var(--mac-orange);
+            color: var(--mac-white);
+        }
+
+        .badge-danger {
+            background: var(--mac-red);
+            color: var(--mac-white);
+        }
+
+        .badge-info {
+            background: var(--mac-blue);
+            color: var(--mac-white);
+        }
+
+        .footer {
+            background: var(--mac-light-gray);
+            border-top: 2px solid var(--mac-black);
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--mac-dark-gray);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--mac-black);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="{{ url_for('index') }}" class="logo">🚀 Billion Dollar Company</a>
+            
+            {% if current_user.is_authenticated %}
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+                    <li><a href="{{ url_for('projects') }}" class="{% if request.endpoint == 'projects' %}active{% endif %}">Projects</a></li>
+                    <li><a href="{{ url_for('agents') }}" class="{% if request.endpoint == 'agents' %}active{% endif %}">Agents</a></li>
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                </ul>
+            </nav>
+            {% else %}
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                    <li><a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a></li>
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </header>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>© 2024 Billion Dollar Company | Build. Deploy. Scale. Solo.</p>
+    </footer>
+
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <!-- Notification System -->
+    <div id="notification-container" style="position: fixed; top: 70px; right: 20px; z-index: 9999; max-width: 400px;"></div>
+    
+    <script>
+        // Initialize Socket.IO connection
+        const socket = io('/tasks');
+        
+        socket.on('connect', function() {
+            console.log('Connected to real-time updates');
+        });
+        
+        socket.on('connected', function(data) {
+            console.log(data.message);
+        });
+        
+        // Handle agent started events
+        socket.on('agent_started', function(data) {
+            showNotification(`🤖 ${data.agent_name} started`, 'info');
+        });
+        
+        // Handle agent completed events
+        socket.on('agent_completed', function(data) {
+            if (data.result.success) {
+                showNotification(`✅ ${data.agent_name} completed successfully`, 'success');
+            } else {
+                showNotification(`❌ ${data.agent_name} failed`, 'error');
+            }
+            
+            // Refresh relevant UI elements if on dashboard
+            if (window.location.pathname === '/dashboard') {
+                setTimeout(() => location.reload(), 2000);
+            }
+        });
+        
+        // Handle project advancing events
+        socket.on('project_advancing', function(data) {
+            showNotification(`🚀 Project advancing to Stage ${data.to_stage}`, 'info');
+        });
+        
+        // Handle task updates
+        socket.on('task_update', function(data) {
+            console.log('Task update:', data);
+            if (data.status === 'completed') {
+                showNotification(`✅ Task completed`, 'success');
+            } else if (data.status === 'failed') {
+                showNotification(`❌ Task failed: ${data.data.error}`, 'error');
+            }
+        });
+        
+        // Notification function
+        function showNotification(message, type = 'info') {
+            const notificationId = 'notif-' + Date.now();
+            const typeStyles = {
+                'success': 'background: var(--mac-green); color: white;',
+                'error': 'background: var(--mac-red); color: white;',
+                'info': 'background: var(--mac-blue); color: white;',
+                'warning': 'background: var(--mac-orange); color: white;'
+            };
+            
+            const notification = document.createElement('div');
+            notification.id = notificationId;
+            notification.className = 'notification';
+            notification.style = `
+                ${typeStyles[type]}
+                border: 2px solid var(--mac-black);
+                padding: 12px 16px;
+                margin-bottom: 10px;
+                font-size: 13px;
+                font-weight: bold;
+                box-shadow: 2px 2px 0 var(--mac-black);
+                animation: slideIn 0.3s ease-out;
+                cursor: pointer;
+            `;
+            notification.innerHTML = message;
+            notification.onclick = function() {
+                removeNotification(notificationId);
+            };
+            
+            document.getElementById('notification-container').appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => removeNotification(notificationId), 5000);
+        }
+        
+        function removeNotification(id) {
+            const notif = document.getElementById(id);
+            if (notif) {
+                notif.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notif.remove(), 300);
+            }
+        }
+        
+        // CSS animations for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

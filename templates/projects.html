@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Projects - Billion Dollar Company{% endblock %}
+
+{% block content %}
+<div class="window">
+    <div class="window-bar">
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-title">📁 All Projects</div>
+    </div>
+    <div class="window-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="font-size: 20px;">Your Projects</h2>
+            <a href="{{ url_for('new_project') }}" class="btn btn-primary">+ New Project</a>
+        </div>
+        
+        {% if projects.items %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Stage</th>
+                    <th>Status</th>
+                    <th>Progress</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in projects.items %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('project_detail', project_id=project.id) }}" style="text-decoration: none; color: var(--mac-blue);">
+                            {{ project.name }}
+                        </a>
+                    </td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                        {{ project.description or '-' }}
+                    </td>
+                    <td>
+                        <span class="badge badge-info">Stage {{ project.stage }}</span>
+                    </td>
+                    <td>
+                        {% if project.status == 'idea' %}
+                            <span class="badge">{{ project.status }}</span>
+                        {% elif project.status in ['validating', 'developing'] %}
+                            <span class="badge badge-warning">{{ project.status }}</span>
+                        {% elif project.status in ['operating', 'scaling'] %}
+                            <span class="badge badge-success">{{ project.status }}</span>
+                        {% else %}
+                            <span class="badge badge-danger">{{ project.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="width: 100px; height: 10px; background: var(--mac-light-gray); border: 1px solid var(--mac-black);">
+                            <div style="width: {{ project.completion_percentage }}%; height: 100%; background: var(--mac-green);"></div>
+                        </div>
+                    </td>
+                    <td>{{ project.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <div style="display: flex; gap: 5px;">
+                            <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn" style="padding: 4px 8px; font-size: 11px;">View</a>
+                            <button onclick="deleteProject({{ project.id }}, '{{ project.name|replace("'", "\\'") }}', this)" class="btn delete-btn" style="padding: 4px 8px; font-size: 11px; background: var(--mac-red); color: var(--mac-white); border-color: var(--mac-red);" title="Delete project">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% if projects.has_prev or projects.has_next %}
+        <div style="margin-top: 20px; text-align: center;">
+            {% if projects.has_prev %}
+                <a href="{{ url_for('projects', page=projects.prev_num) }}" class="btn">← Previous</a>
+            {% endif %}
+            
+            <span style="margin: 0 20px;">Page {{ projects.page }} of {{ projects.pages }}</span>
+            
+            {% if projects.has_next %}
+                <a href="{{ url_for('projects', page=projects.next_num) }}" class="btn">Next →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div style="text-align: center; padding: 60px 20px;">
+            <h3 style="font-size: 24px; margin-bottom: 20px;">🚀 No projects yet!</h3>
+            <p style="color: var(--mac-dark-gray); margin-bottom: 30px;">
+                Start your journey to building a billion-dollar company.<br>
+                Our AI agents are ready to help you turn your ideas into reality.
+            </p>
+            <a href="{{ url_for('new_project') }}" class="btn btn-primary" style="font-size: 16px; padding: 12px 30px;">
+                Create Your First Project
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.delete-btn:hover {
+    background: #B22222 !important;
+    transform: scale(1.05);
+}
+
+.delete-btn {
+    transition: all 0.2s ease;
+}
+</style>
+
+<script>
+function deleteProject(projectId, projectName, buttonElement) {
+    if (confirm(`Are you sure you want to delete "${projectName}"?\n\nThis action cannot be undone and will delete all associated tasks, executions, and artifacts.`)) {
+        const btn = buttonElement;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳';
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        
+        fetch(`/api/projects/${projectId}/delete`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers.get('content-type'));
+            
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`);
+                });
+            }
+            
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the table
+                const row = event.target.closest('tr');
+                row.remove();
+                
+                // Check if table is empty and show empty state
+                const tbody = document.querySelector('tbody');
+                if (tbody.children.length === 0) {
+                    location.reload(); // Reload to show empty state
+                }
+                
+                alert('Project deleted successfully');
+            } else {
+                alert('Error deleting project: ' + (data.error || 'Unknown error'));
+                
+                // Restore button state on error
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting project: ' + error.message);
+            
+            // Restore button state on error
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}{{ agent.name }} - Billion Dollar Company{% endblock %}
+
+{% block content %}
+<div class="window">
+    <div class="window-bar">
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-title">{{ agent.icon }} {{ agent.name }}</div>
+    </div>
+    <div class="window-content">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+            <div>
+                <h1 style="font-size: 24px; margin-bottom: 10px;">
+                    <span style="font-size: 30px;">{{ agent.icon }}</span> {{ agent.name }}
+                </h1>
+                <p style="color: var(--mac-dark-gray);">{{ agent.description }}</p>
+            </div>
+            <div style="text-align: right;">
+                <div class="badge badge-info" style="font-size: 14px; padding: 8px 12px;">Stage {{ agent.stage }}</div>
+                <div style="margin-top: 10px;">
+                    {% if agent.status == 'idle' %}
+                        <span class="badge" style="background: var(--mac-gray);">Idle</span>
+                    {% elif agent.status == 'running' %}
+                        <span class="badge badge-success">Running</span>
+                    {% else %}
+                        <span class="badge badge-danger">{{ agent.status }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-4" style="margin-bottom: 30px;">
+            <div class="card">
+                <div class="card-body" style="text-align: center;">
+                    <div style="font-size: 10px; color: var(--mac-dark-gray); margin-bottom: 5px;">EXECUTIONS</div>
+                    <div style="font-size: 24px; font-weight: bold;">{{ agent.total_executions }}</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body" style="text-align: center;">
+                    <div style="font-size: 10px; color: var(--mac-dark-gray); margin-bottom: 5px;">SUCCESS RATE</div>
+                    <div style="font-size: 24px; font-weight: bold;">{{ "%.1f"|format(agent.success_rate) }}%</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body" style="text-align: center;">
+                    <div style="font-size: 10px; color: var(--mac-dark-gray); margin-bottom: 5px;">AI PROVIDER</div>
+                    <div style="font-size: 14px; font-weight: bold;">{{ agent.ai_provider }}</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body" style="text-align: center;">
+                    <div style="font-size: 10px; color: var(--mac-dark-gray); margin-bottom: 5px;">MODEL</div>
+                    <div style="font-size: 14px; font-weight: bold;">{{ agent.model_name }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: #f9f9f9; padding: 15px; border: 1px solid var(--mac-light-gray); margin-bottom: 20px;">
+            <h3 style="font-size: 14px; margin-bottom: 10px;">⚙️ Configuration</h3>
+            <div class="grid grid-3" style="font-size: 12px;">
+                <div><strong>Temperature:</strong> {{ agent.temperature }}</div>
+                <div><strong>Max Tokens:</strong> {{ agent.max_tokens }}</div>
+                <div><strong>Timeout:</strong> {{ agent.timeout_seconds }}s</div>
+                <div><strong>Auto Execute:</strong> {{ 'Yes' if agent.auto_execute else 'No' }}</div>
+                <div><strong>Retry Attempts:</strong> {{ agent.retry_attempts }}</div>
+                <div><strong>Active:</strong> {{ 'Yes' if agent.is_active else 'No' }}</div>
+            </div>
+        </div>
+        
+        {% if agent.capabilities %}
+        <div style="background: #f9f9f9; padding: 15px; border: 1px solid var(--mac-light-gray); margin-bottom: 20px;">
+            <h3 style="font-size: 14px; margin-bottom: 10px;">🎯 Capabilities</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                {% for capability in agent.capabilities %}
+                <span class="badge badge-info">{{ capability }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="window">
+        <div class="window-bar">
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-title">📝 System Prompts</div>
+        </div>
+        <div class="window-content">
+            {% if prompts %}
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for prompt in prompts %}
+                <div class="card" style="margin-bottom: 10px;">
+                    <div class="card-body" style="padding: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <div style="font-weight: bold; font-size: 13px;">{{ prompt.name }}</div>
+                                <div style="font-size: 11px; color: var(--mac-dark-gray); margin-top: 5px;">
+                                    Version {{ prompt.version }} • 
+                                    {% if prompt.is_active %}
+                                        <span class="badge badge-success" style="font-size: 10px;">Active</span>
+                                    {% else %}
+                                        <span class="badge" style="font-size: 10px;">Inactive</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if prompt.role %}
+                        <div style="margin-top: 10px; padding: 10px; background: white; border: 1px solid var(--mac-light-gray); font-family: 'Monaco', monospace; font-size: 11px; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">
+                            {{ prompt.role[:200] }}{% if prompt.role|length > 200 %}...{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; color: var(--mac-dark-gray); padding: 20px;">No prompts configured</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="window">
+        <div class="window-bar">
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-button"></div>
+            <div class="window-title">📊 Recent Executions</div>
+        </div>
+        <div class="window-content">
+            {% if recent_executions %}
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for execution in recent_executions %}
+                <div class="card" style="margin-bottom: 10px;">
+                    <div class="card-body" style="padding: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 11px; color: var(--mac-dark-gray);">
+                                    {{ execution.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                </div>
+                                {% if execution.project %}
+                                <div style="font-size: 12px; margin-top: 3px;">
+                                    Project: {{ execution.project.name }}
+                                </div>
+                                {% endif %}
+                                <div style="font-size: 11px; color: var(--mac-dark-gray); margin-top: 3px;">
+                                    {{ execution.duration_ms }}ms • 
+                                    {{ execution.tokens_used }} tokens • 
+                                    ${{ "%.4f"|format(execution.cost or 0) }}
+                                </div>
+                            </div>
+                            {% if execution.success %}
+                                <span class="badge badge-success" style="font-size: 10px;">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="font-size: 10px;">✗</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; color: var(--mac-dark-gray); padding: 20px;">No executions yet</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="window" style="margin-top: 20px;">
+    <div class="window-bar">
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-title">🧪 Test Agent</div>
+    </div>
+    <div class="window-content">
+        <div class="form-group">
+            <label class="form-label">Test Prompt</label>
+            <textarea class="form-control" id="test-prompt" rows="4" placeholder="Enter a test prompt for this agent..."></textarea>
+        </div>
+        <button onclick="testAgent()" class="btn btn-primary">Run Test</button>
+        
+        <div id="test-result" style="margin-top: 20px; display: none;">
+            <h4 style="font-size: 14px; margin-bottom: 10px;">Response:</h4>
+            <div style="padding: 15px; background: white; border: 1px solid var(--mac-light-gray); font-family: 'Monaco', monospace; font-size: 12px; max-width: 100%; overflow-x: auto;">
+                <pre id="test-response" style="white-space: pre-wrap; word-wrap: break-word; margin: 0; max-width: 100%; overflow-wrap: break-word;"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function testAgent() {
+    const prompt = document.getElementById('test-prompt').value;
+    if (!prompt) {
+        alert('Please enter a test prompt');
+        return;
+    }
+    
+    const btn = event.target;
+    btn.innerHTML = '<span class="loading"></span> Running...';
+    btn.disabled = true;
+    
+    fetch(`/agents/{{ agent.id }}/execute`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            prompt: prompt,
+            async: false  // Use synchronous mode for immediate response
+        })
+    })
+    .then(response => {
+        // Check if the response is ok before parsing JSON
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`HTTP error! status: ${response.status}, message: ${text}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        document.getElementById('test-result').style.display = 'block';
+        if (data.success) {
+            document.getElementById('test-response').textContent = data.response || 'No response';
+        } else {
+            document.getElementById('test-response').textContent = 'Error: ' + (data.error || 'Unknown error');
+        }
+        btn.innerHTML = 'Run Test';
+        btn.disabled = false;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('test-result').style.display = 'block';
+        document.getElementById('test-response').textContent = 'Error: ' + error.message;
+        btn.innerHTML = 'Run Test';
+        btn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

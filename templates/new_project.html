@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}New Project - Billion Dollar Company{% endblock %}
+
+{% block content %}
+<div class="window" style="max-width: 800px; margin: 0 auto;">
+    <div class="window-bar">
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-title">🚀 Launch New Project</div>
+    </div>
+    <div class="window-content">
+        <form method="POST" id="new-project-form">
+            <div class="form-group">
+                <label class="form-label" for="name">Project Name</label>
+                <input type="text" class="form-control" id="name" name="name" placeholder="My Billion Dollar Idea" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="description">Brief Description</label>
+                <input type="text" class="form-control" id="description" name="description" placeholder="A revolutionary platform that...">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="idea_source">Your Idea (Be as detailed as possible)</label>
+                <textarea class="form-control" id="idea_source" name="idea_source" rows="10" required placeholder="Describe your idea in detail. Include:
+- What problem does it solve?
+- Who is your target audience?
+- What makes it unique?
+- Any specific features or functionality?
+- Business model ideas?
+
+The more detail you provide, the better our AI agents can help you build it!"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" name="auto_run" value="1" id="auto_run" style="transform: scale(1.3);">
+                    <span>🤖 <strong>Auto Run</strong> - Automatically advance through all stages</span>
+                </label>
+                <div style="font-size: 11px; color: var(--mac-dark-gray); margin-top: 5px; margin-left: 35px;">
+                    Perfect for hands-off experience. Each stage waits 10 minutes before advancing to accommodate local AI models.
+                    Total runtime: ~1 hour for complete automation through all 6 stages.
+                </div>
+            </div>
+            
+            <div style="background: #f9f9f9; padding: 15px; border: 1px solid var(--mac-light-gray); margin-bottom: 20px;">
+                <h3 style="font-size: 14px; margin-bottom: 10px;">🤖 What happens next?</h3>
+                <ol style="font-size: 12px; line-height: 1.8; margin-left: 20px;">
+                    <li><strong>Stage 1:</strong> Your idea is captured and processed</li>
+                    <li><strong>Stage 2:</strong> Market Research & Technical Architecture agents validate feasibility</li>
+                    <li><strong>Stage 3:</strong> Development agents build your MVP</li>
+                    <li><strong>Stage 4:</strong> Marketing agents launch your product</li>
+                    <li><strong>Stage 5:</strong> Operations agents manage your business</li>
+                    <li><strong>Stage 6:</strong> System continuously optimizes for growth</li>
+                </ol>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-primary" style="font-size: 16px; padding: 10px 30px;">
+                    🚀 Launch Project
+                </button>
+                <a href="{{ url_for('projects') }}" class="btn">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('new-project-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<span class="loading"></span> Initializing agents...';
+    submitBtn.disabled = true;
+    
+    // Simulate a delay for effect then submit
+    setTimeout(() => {
+        this.submit();
+    }, 1000);
+});
+</script>
+{% endblock %}

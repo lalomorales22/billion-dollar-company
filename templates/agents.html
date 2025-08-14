@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}AI Agents - Billion Dollar Company{% endblock %}
+
+{% block content %}
+<div class="window">
+    <div class="window-bar">
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-button"></div>
+        <div class="window-title">🤖 AI Agent Fleet</div>
+    </div>
+    <div class="window-content">
+        <h2 style="font-size: 20px; margin-bottom: 20px;">Your Autonomous Workforce</h2>
+        
+        {% for stage in range(1, 7) %}
+        <div style="margin-bottom: 40px;">
+            <h3 style="font-size: 16px; background: var(--mac-black); color: var(--mac-white); padding: 8px 15px; display: inline-block; margin-bottom: 20px;">
+                Stage {{ stage }}: 
+                {% if stage == 1 %}Input Layer
+                {% elif stage == 2 %}Validation & Strategy
+                {% elif stage == 3 %}Development
+                {% elif stage == 4 %}Go-to-Market
+                {% elif stage == 5 %}Business Operations
+                {% elif stage == 6 %}Self-Improvement
+                {% endif %}
+            </h3>
+            
+            <div class="grid grid-3">
+                {% for agent in agents %}
+                {% if agent.stage == stage %}
+                <div class="card" onclick="window.location.href='{{ url_for('agent_detail', agent_id=agent.id) }}'" style="cursor: pointer;">
+                    <div class="card-header" style="background: {{ agent.color or 'var(--mac-gray)' }}; color: white;">
+                        <span style="font-size: 18px;">{{ agent.icon }}</span> {{ agent.name }}
+                    </div>
+                    <div class="card-body">
+                        <p style="font-size: 12px; margin-bottom: 10px;">{{ agent.description }}</p>
+                        
+                        <div style="font-size: 11px; color: var(--mac-dark-gray);">
+                            <div style="margin-bottom: 5px;">
+                                <strong>Provider:</strong> {{ agent.ai_provider }}
+                            </div>
+                            <div style="margin-bottom: 5px;">
+                                <strong>Model:</strong> {{ agent.model_name }}
+                            </div>
+                            <div style="margin-bottom: 5px;">
+                                <strong>Executions:</strong> {{ agent.total_executions }}
+                            </div>
+                            <div>
+                                <strong>Status:</strong> 
+                                {% if agent.status == 'idle' %}
+                                    <span class="badge" style="background: var(--mac-gray);">Idle</span>
+                                {% elif agent.status == 'running' %}
+                                    <span class="badge badge-success">Running</span>
+                                {% else %}
+                                    <span class="badge badge-danger">{{ agent.status }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
