@@ -52,6 +52,7 @@ class Project(db.Model):
     idea_source = db.Column(db.Text)  # Original idea/prompt
     status = db.Column(db.String(50), default=ProjectStatus.IDEA.value)
     stage = db.Column(db.Integer, default=1)  # 1-6 stages
+    auto_run = db.Column(db.Boolean, default=False)  # Auto-advance through stages
     
     # Metrics
     estimated_revenue = db.Column(db.Float, default=0)
@@ -89,7 +90,7 @@ class Agent(db.Model):
     ai_provider = db.Column(db.String(50))  # openai, anthropic, google
     model_name = db.Column(db.String(100))  # gpt-4, claude-3, gemini-pro
     temperature = db.Column(db.Float, default=0.7)
-    max_tokens = db.Column(db.Integer, default=2000)
+    max_tokens = db.Column(db.Integer, default=4000)
     
     # Status
     status = db.Column(db.String(20), default=AgentStatus.IDLE.value)

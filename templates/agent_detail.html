@@ -97,7 +97,7 @@
         </div>
         <div class="window-content">
             {% if prompts %}
-            <div style="max-height: 400px; overflow-y: auto;">
+            <div style="max-height: 600px; overflow-y: auto;">
                 {% for prompt in prompts %}
                 <div class="card" style="margin-bottom: 10px;">
                     <div class="card-body" style="padding: 10px;">
@@ -114,9 +114,22 @@
                                 </div>
                             </div>
                         </div>
-                        {% if prompt.role %}
-                        <div style="margin-top: 10px; padding: 10px; background: white; border: 1px solid var(--mac-light-gray); font-family: 'Monaco', monospace; font-size: 11px; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">
-                            {{ prompt.role[:200] }}{% if prompt.role|length > 200 %}...{% endif %}
+                        {% if prompt.role or prompt.instructions %}
+                        <div style="margin-top: 10px;">
+                            {% if prompt.role %}
+                            <div style="margin-bottom: 10px;">
+                                <strong style="font-size: 11px; color: var(--mac-blue);">ROLE:</strong>
+                                <div style="margin-top: 5px; padding: 10px; background: white; border: 1px solid var(--mac-light-gray); font-family: 'Monaco', monospace; font-size: 11px; line-height: 1.4;">
+                                    {{ prompt.role }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if prompt.instructions %}
+                            <div>
+                                <strong style="font-size: 11px; color: var(--mac-blue);">INSTRUCTIONS:</strong>
+                                <div style="margin-top: 5px; padding: 10px; background: white; border: 1px solid var(--mac-light-gray); font-family: 'Monaco', monospace; font-size: 11px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; max-height: 300px; overflow-y: auto;">{{ prompt.instructions }}</div>
+                            </div>
+                            {% endif %}
                         </div>
                         {% endif %}
                     </div>
@@ -183,6 +196,11 @@
         <div class="window-title">🧪 Test Agent</div>
     </div>
     <div class="window-content">
+        <div style="padding: 10px; background: #e8f4f8; border: 1px solid #bee5eb; border-radius: 5px; margin-bottom: 15px;">
+            <div style="font-size: 11px; color: #0c5460;">
+                <strong>ℹ️ Note:</strong> This agent will use its comprehensive system prompt including role, responsibilities, and output format as configured above.
+            </div>
+        </div>
         <div class="form-group">
             <label class="form-label">Test Prompt</label>
             <textarea class="form-control" id="test-prompt" rows="4" placeholder="Enter a test prompt for this agent..."></textarea>

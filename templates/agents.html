@@ -46,7 +46,7 @@
                             <div style="margin-bottom: 5px;">
                                 <strong>Executions:</strong> {{ agent.total_executions }}
                             </div>
-                            <div>
+                            <div style="margin-bottom: 5px;">
                                 <strong>Status:</strong> 
                                 {% if agent.status == 'idle' %}
                                     <span class="badge" style="background: var(--mac-gray);">Idle</span>
@@ -55,6 +55,11 @@
                                 {% else %}
                                     <span class="badge badge-danger">{{ agent.status }}</span>
                                 {% endif %}
+                            </div>
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--mac-light-gray);">
+                                <div style="color: var(--mac-blue); font-size: 10px; text-transform: uppercase;">
+                                    ✨ Enhanced System Prompt Active
+                                </div>
                             </div>
                         </div>
                     </div>

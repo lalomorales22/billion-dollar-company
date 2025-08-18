@@ -140,7 +140,7 @@ function deleteProject(projectId, projectName, buttonElement) {
         .then(data => {
             if (data.success) {
                 // Remove the row from the table
-                const row = event.target.closest('tr');
+                const row = buttonElement.closest('tr');
                 row.remove();
                 
                 // Check if table is empty and show empty state

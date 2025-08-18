@@ -27,7 +27,7 @@ class AIProvider:
         self.is_configured = False
         
     def generate(self, prompt: str, system_prompt: Optional[str] = None, 
-                temperature: float = 0.7, max_tokens: int = 2000) -> AIResponse:
+                temperature: float = 0.7, max_tokens: int = 4000) -> AIResponse:
         """Generate a response from the AI provider"""
         raise NotImplementedError
 
@@ -45,7 +45,7 @@ class OllamaProvider(AIProvider):
         self.timeout = 600  # 10 minutes for local model processing
     
     def generate(self, prompt: str, system_prompt: Optional[str] = None,
-                temperature: float = 0.7, max_tokens: int = 2000,
+                temperature: float = 0.7, max_tokens: int = 4000,
                 model: str = "gpt-oss:20b") -> AIResponse:
         """Generate response using Ollama"""
         

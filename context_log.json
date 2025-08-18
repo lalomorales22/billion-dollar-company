@@ -1,0 +1,1970 @@
+{"timestamp": "2025-08-15T02:57:37Z", "directory": "/Users/megabrain/Desktop/billion-dollar-company", "git_branch": "main", "command": "    1          .delete-frame {
+    2              position: absolute;
+    3              top: 5px;
+    4              right: 5px;
+    5              background-color: rgba(231, 76, 60, 0.8);
+    6              color: white;
+    7              border: none;
+    8              border-radius: 50%;
+    9              width: 24px;
+   10              height: 24px;
+   11              font-size: 14px;
+   12              cursor: pointer;
+   13              display: flex;
+   14              align-items: center;
+   15              justify-content: center;
+   16              opacity: 0;
+   17              transition: opacity 0.2s;
+   18          .frame-item:hover .delete-frame {
+   19              opacity: 1;
+   20          .preview-area {
+   21              margin-top: 30px;
+   22              text-align: center;
+   23              padding: 20px;
+   24              border-radius: 8px;
+   25              background-color: #f8fafc;
+   26              border: 1px solid #e1e1e1;
+   27          .result-gif {
+   28              max-width: 100%;
+   29              max-height: 300px;
+   30              border: 1px solid #ddd;
+   31              border-radius: 8px;
+   32              margin: 0 auto;
+   33          .message {
+   34              text-align: center;
+   35              margin: 15px 0;
+   36              padding: 12px;
+   37              border-radius: 5px;
+   38          .error-message {
+   39              background-color: #fdeded;
+   40              color: #b71c1c;
+   41              border: 1px solid #f5c6cb;
+   42          .success-message {
+   43              background-color: #d4edda;
+   44              color: #155724;
+   45              border: 1px solid #c3e6cb;
+   46          .loader {
+   47              border: 4px solid #f3f3f3;
+   48              border-top: 4px solid #3498db;
+   49              border-radius: 50%;
+   50              width: 40px;
+   51              height: 40px;
+   52              animation: spin 1s linear infinite;
+   53              margin: 20px auto;
+   54          @keyframes spin {
+   55              0% { transform: rotate(0deg); }
+   56              100% { transform: rotate(360deg); }
+   57          .hidden {
+   58              display: none;
+   59          .dragging {
+   60              opacity: 0.5;
+   61      </style>
+   62  </head>
+   63  <body>
+   64      <div class=\"container\">
+   65          <h1>Animated GIF Creator</h1>
+   66          <div id=\"upload-area\" class=\"upload-area\">
+   67              <p>Drag & drop PNG images here or click to select files</p>
+   68              <input type=\"file\" id=\"file-input\" multiple accept=\".png\" style=\"display: none;\">
+   69          </div>
+   70          <h2>Frames</h2>
+   71          <div class=\"frames-container\" id=\"frames-preview\"></div>
+   72          <div class=\"controls\">
+   73              <h2>GIF Settings</h2>
+   74              <div class=\"control-group\">
+   75                  <label for=\"delay-slider\">Frame Delay (ms): <span id=\"delay-value\" class=\"value-display\">100</span></label>
+   76                  <input type=\"range\" id=\"delay-slider\" min=\"10\" max=\"1000\" value=\"100\" step=\"10\">
+   77              </div>
+   78              <div class=\"control-group\">
+   79                  <label>
+   80                      <input type=\"checkbox\" id=\"resize-checkbox\">
+   81                      Resize images
+   82                  </label>
+   83                  <div id=\"resize-controls\" class=\"hidden\" style=\"margin-top: 10px; padding-left: 10px;\">
+   84                      <div class=\"control-group\">
+   85                          <label for=\"width-input\">Width (px): <span id=\"width-value\" class=\"value-display\">200</span></label>
+   86                          <input type=\"range\" id=\"width-input\" min=\"50\" max=\"800\" value=\"200\" step=\"10\">
+   87                      </div>
+   88                      <div class=\"control-group\">
+   89                          <label for=\"height-input\">Height (px): <span id=\"height-value\" class=\"value-display\">200</span></label>
+   90                          <input type=\"range\" id=\"height-input\" min=\"50\" max=\"800\" value=\"200\" step=\"10\">
+   91                      </div>
+   92                  </div>
+   93              </div>
+   94              <div class=\"control-group\">
+   95                  <label>
+   96                      <input type=\"checkbox\" id=\"loop-checkbox\" checked>
+   97                      Loop GIF
+   98                  </label>
+   99              </div>
+  100          </div>
+  101          <button id=\"create-btn\" class=\"btn create-btn\" disabled>Create Animated GIF</button>
+  102          <button id=\"download-btn\" class=\"btn download-btn hidden\">Download GIF</button>
+  103          <div id=\"loader\" class=\"loader hidden\"></div>
+  104          <div id=\"error-message\" class=\"message error-message hidden\"></div>
+  105          <div id=\"success-message\" class=\"message success-message hidden\"></div>
+  106          <div class=\"preview-area\">
+  107              <h2>Preview</h2>
+  108              <img id=\"gif-preview\" class=\"result-gif hidden\" alt=\"GIF Preview\">
+  109          </div>
+  110      </div>
+  111      <script>
+  112          document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            const framesPreview = document.getElementById('frames-preview');
+            const delaySlider = document.getElementById('delay-slider');
+            const delayValue = document.getElementById('delay-value');
+            const resizeCheckbox = document.getElementById('resize-checkbox');
+            const resizeControls = document.getElementById('resize-controls');
+            const widthInput = document.getElementById('width-input');
+            const widthValue = document.getElementById('width-value');
+            const heightInput = document.getElementById('height-input');
+            const heightValue = document.getElementById('height-value');
+            const loopCheckbox = document.getElementById('loop-checkbox');
+            const createBtn = document.getElementById('create-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const loader = document.getElementById('loader');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+            const gifPreview = document.getElementById('gif-preview');
+            
+            // Variables for application state
+            let files = [];
+            let sessionId = null;
+            let draggingIndex = null;
+            
+            // Event Listeners
+            uploadArea.addEventListener('click', () => fileInput.click());
+  113              uploadArea.addEventListener('dragover', (e) => {
+  114                  e.preventDefault();
+                uploadArea.classList.add('dragover');
+  115              uploadArea.addEventListener('dragleave', () => {
+  116                  uploadArea.classList.remove('dragover');
+  117              uploadArea.addEventListener('drop', (e) => {
+  118                  e.preventDefault();
+                uploadArea.classList.remove('dragover');
+  119                  const droppedFiles = Array.from(e.dataTransfer.files).filter(file => 
+  120                      file.type === 'image/png'
+  121                  if (droppedFiles.length > 0) {
+                    handleFiles(droppedFiles);
+                } else {
+                    showError('Please drop only PNG files');
+                }
+  122              fileInput.addEventListener('change', (e) => {
+  123                  const selectedFiles = Array.from(e.target.files).filter(file => 
+  124                      file.type === 'image/png'
+  125                  if (selectedFiles.length > 0) {
+                    handleFiles(selectedFiles);
+                } else {
+                    showError('Please select only PNG files');
+                }
+  126              delaySlider.addEventListener('input', () => {
+  127                  delayValue.textContent = delaySlider.value;
+  128              resizeCheckbox.addEventListener('change', () => {
+  129              widthInput.addEventListener('input', () => {
+  130                  widthValue.textContent = widthInput.value;
+  131              heightInput.addEventListener('input', () => {
+  132                  heightValue.textContent = heightInput.value;
+  133              createBtn.addEventListener('click', createGif);
+  134              downloadBtn.addEventListener('click', () => {
+  135                  if (sessionId) {
+                    window.location.href = `/download/${sessionId}`;
+                }
+  136              // Functions
+  137              function handleFiles(newFiles) {
+                files = [...files, ...newFiles];
+                updateFramesPreview();
+                uploadFiles();
+            }
+  138              function updateFramesPreview() {
+                framesPreview.innerHTML = '';
+                
+                files.forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const frameItem = document.createElement('div');
+                        frameItem.className = 'frame-item';
+                        frameItem.setAttribute('data-index', index);
+                        frameItem.draggable = true;
+                        
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.alt = `Frame ${index + 1}`;
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'delete-frame';
+                        deleteBtn.innerHTML = '×';
+                        deleteBtn.title = 'Delete frame';
+                        deleteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            files = files.filter((_, i) => i !== index);
+  139                              updateFramesPreview();
+                            if (sessionId) {
+                                // Update server if we have a session
+                                fetch(`/remove/${sessionId}/${file.name}`).catch(console.error);
+                            }
+  140                          frameItem.appendChild(img);
+  141                          frameItem.appendChild(deleteBtn);
+  142                          framesPreview.appendChild(frameItem);
+  143                          // Add drag and drop event listeners for reordering
+  144                          frameItem.addEventListener('dragstart', (e) => {
+  145                              draggingIndex = index;
+  146                              setTimeout(() => frameItem.classList.add('dragging'), 0);
+  147                          frameItem.addEventListener('dragend', () => {
+  148                              frameItem.classList.remove('dragging');
+  149                              draggingIndex = null;
+  150                          frameItem.addEventListener('dragover', (e) => {
+  151                              e.preventDefault();
+                            if (draggingIndex !== null && draggingIndex !== index) {
+                                frameItem.classList.add('dragover');
+                            }
+  152                          frameItem.addEventListener('dragleave', () => {
+  153                              frameItem.classList.remove('dragover');
+  154                          frameItem.addEventListener('drop', (e) => {
+  155                              e.preventDefault();
+                            frameItem.classList.remove('dragover');
+  156                              if (draggingIndex !== null && draggingIndex !== index) {
+                                // Update the files array
+                                const temp = files[draggingIndex];
+                                files.splice(draggingIndex, 1);
+                                files.splice(index, 0, temp);
+                                
+                                updateFramesPreview();
+                                
+                                // If we already have a session, update the server-side order
+                                if (sessionId) {
+                                    const newOrder = files.map((_, i) => i);
+  157                                      fetch('/reorder', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            session_id: sessionId,
+                                            order: newOrder
+                                        })
+                                    }).catch(console.error);
+  158                      reader.readAsDataURL(file);
+  159                  createBtn.disabled = files.length === 0;
+  160              function uploadFiles() {
+                if (files.length === 0) {
+                    sessionId = null;
+                    return;
+                }
+                
+                showLoader();
+                hideError();
+                hideSuccess();
+                downloadBtn.classList.add('hidden');
+                gifPreview.classList.add('hidden');
+                
+                const formData = new FormData();
+                files.forEach(file => {
+                    formData.append('images', file);
+                });
+  161                  fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+  162                  .then(response => response.json())
+  163                  .then(data => {
+  164                      hideLoader();
+                    
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+  165                      sessionId = data.session_id;
+  166                      createBtn.disabled = false;
+  167                      showSuccess(`${data.file_count} images uploaded successfully`);
+  168                  .catch(error => {
+  169                      hideLoader();
+                    showError('Error uploading files: ' + error.message);
+  170              function createGif() {
+                if ({
+  171                      showError('Please upload images first');
+  172                      return;
+  173                  showLoader();
+                hideError();
+                hideSuccess();
+                downloadBtn.classList.add('hidden');
+  174                  gifPreview.classList.add('hidden');
+  175                  const options = {
+  176                      session_id: sessionId,
+  177                      delay: parseInt(delaySlider.value),
+  178                      loop: loopCheckbox.checked
+  179                  if (resizeCheckbox.checked) {
+                    options.width = parseInt(widthInput.value);
+                    options.height = parseInt(heightInput.value);
+                }
+  180                  fetch('/create-gif', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(options)
+                })
+  181                  .then(response => response.json())
+  182                  .then(data => {
+  183                      hideLoader();
+                    
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+  184                      showSuccess('GIF created successfully!');
+  185                      downloadBtn.classList.remove('hidden');
+  186                      // Show the GIF preview
+  187                      gifPreview.src = data.gif_data;
+  188                      gifPreview.classList.remove('hidden');
+  189                  .catch(error => {
+  190                      hideLoader();
+                    showError('Error creating GIF: ' + error.message);
+  191              function showLoader() {
+                loader.classList.remove('hidden');
+            }
+  192              function hideLoader() {
+                loader.classList.add('hidden');
+            }
+  193              function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.classList.remove('hidden');
+                successMessage.classList.add('hidden');
+            }
+  194              function hideError() {
+                errorMessage.classList.add('hidden');
+            }
+  195              function showSuccess(message) {
+                successMessage.textContent = message;
+                successMessage.classList.remove('hidden');
+                errorMessage.classList.add('hidden');
+            }
+  196              function hideSuccess() {
+                successMessage.classList.add('hidden');
+            }
+  197      </script>
+  198  </body>
+  199  </html>
+  200  '''
+
+if __name__ == '__main__':
+    try:
+        # Create temp directory if it doesn't exist
+  201          os.makedirs(TEMP_DIR, exist_ok=True)
+  202          # Run the Flask app
+  203          app.run(debug=True)
+  204      finally:
+  205          # Cleanup when the application exits
+  206  cd dektop
+  207  nano gif.py
+  208  python gif.py
+  209  source /Users/megabrain/Desktop/oss-batch-processor/.venv/bin/activate
+  210  claude
+  211  docker build -t oss-processor .
+  212  source .venv/bin/activate
+  213  docker build -t oss-processor .
+  214  python test_connection.py
+  215  python network_test.py
+  216  python install.py
+  217  python setup_environment.py
+  218  python obp-gui.py
+  219  python obp-gui.py
+  220  python obp-gui.py
+  221  ls
+  222  python obp-gui.py
+  223  cd desktop
+  224  gemini
+  225  cd desktop
+  226  ls
+  227  cd gpt-5
+  228  ls
+  229  cat readme.md
+  230  nano gpt-5.html
+  231  cd desktop
+  232  mkdir o3-php-weaver
+  233  cd o3-php-weaver
+  234  nano index.php
+  235  php -S localhost:8000
+  236  cd
+  237  cd desktop
+  238  ls
+  239  cd gpt-5
+  240  ls
+  241  nano gpt-5api.md
+  242  cd desktop
+  243  mkdir claude-makes-gp5-app
+  244  cd claude-makes-gpt5-app
+  245  cd claude-makes-gp5-app
+  246  nano index.php
+  247  rm index.php
+  248  nano app.py
+  249  python app.py
+  250  python app.py
+  251  python app.py
+  252  python3 '/Users/megabrain/Desktop/claude-makes-gp5-app/app.py'
+  253  python3 '/Users/megabrain/Desktop/claude-makes-gp5-app/app.py'
+  254  python3 '/Users/megabrain/Desktop/claude-makes-gp5-app/app.py'
+  255  ls
+  256  ls
+  257  cat  readme.md
+  258  export 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
+  259  export OPENAI_API_KEY=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
+  260  ls
+  261  python example.py
+  262  python3 '/Users/megabrain/Desktop/claude-makes-gp5-app/app.py'
+  263  cd desktop
+  264  ls
+  265  cd gpt-5
+  266  ls
+  267  python example.py
+  268  export OPENAI_API_KEY=(index):497 Uncaught ReferenceError: openSettings is not defined
+    at HTMLButtonElement.onclick ((index):497:71)
+  269  export OPENAI_API_KEY=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
+  270  export OPENAI_API_KEY=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
+  271  ls
+  272  open example.py
+  273  cat example.py
+  274  cd desktop
+  275  mkdir gpt-5
+  276  cd gpt-5
+  277  codex
+  278  codex
+  279  python3 '/Users/megabrain/Desktop/claude-makes-gp5-app/app.py'
+  280  cd desktop
+  281  claude
+  282  python3 '/Users/megabrain/Desktop/claude-gpt5/model_explorer.py'
+  283  cd desktop
+  284  cd claude-gpt5
+  285  export OPENAI_API_KEY=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
+  286  cd claude-gpt5
+  287  python3 '/Users/megabrain/Desktop/claude-gpt5/model_explorer.py'
+  288  python app.py
+  289  python app.py
+  290  python app.py
+  291  python app.py
+  292  python app.py
+  293  python app.py
+  294  python app.py
+  295  python3 /Users/megabrain/Desktop/claude-makes-gp5-app/app.py | cat
+  296  source /Users/megabrain/Desktop/claude-makes-gp5-app/.venv/bin/activate && python /Users/megabrain/Desktop/claude-makes-gp5-app/app.py | cat
+  297  ls
+  298  python app.py
+  299  python app.py
+  300  python app.py
+  301  python3 -m venv /Users/megabrain/Desktop/claude-makes-gp5-app/.venv && source /Users/megabrain/Desktop/claude-makes-gp5-app/.venv/bin/activate && pip install -r /Users/megabrain/Desktop/claude-makes-gp5-app/requirements.txt | cat
+  302  php -S localhost:8000
+  303  php -S localhost:8000
+  304  php -S localhost:8000
+  305  php -S localhost:8000
+  306  php -S localhost:8000
+  307  php -S localhost:8000
+  308  php -S localhost:8000
+  309  php -S localhost:8000
+  310  php -S localhost:8000
+  311  ls
+  312  ls
+  313  source .venv/bin/activate
+  314  ls
+  315  python obp-gui.py
+  316  curl https://cursor.com/install -fsS | bash
+  317  echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> ~/.zshrc
+  318  source ~/.zshrc
+  319  cursor-agent
+  320  cd desktop
+  321  mkdir tests
+  322  cd tests
+  323  nano index.php
+  324  php -S localhost:8000
+  325  open index.php
+  326  php -S localhost:8000
+  327  php -S localhost:8000
+  328  cd '/Users/megabrain/Desktop/tests' && php -S localhost:8000
+  329  cd desktop
+  330  cd tests
+  331  ls
+  332  cursor agent
+  333  cursor cli
+  334  cursor
+  335  cursor ls
+  336  ls
+  337  ls
+  338  source .venv/bin/activate
+  339  python obp-gui.py
+  340  cd desktop
+  341  mkdir gpt
+  342  cd gpt
+  343  nano index.php
+  344  open index.php
+  345  php -S localhost:800
+  346  php -S localhost:8000
+  347  php -S localhost:8000
+  348  cd '/Users/megabrain/Desktop/mapbox-gpt5-mapgame' && php -S localhost:8000
+  349  php index.php ws
+  350  WS_PORT=9001 php index.php ws
+  351  WS_PORT=9001 php index.php ws
+  352  php index.php ws
+  353  php index.php ws
+  354  php index.php ws
+  355  php index.php ws
+  356  php index.php ws
+  357  php index.php ws
+  358  cd desktop
+  359  mkdir php-ws-threejs
+  360  cd php-ws-threejs
+  361  nano index.php
+  362  php -S localhost:8000
+  363  open index.php
+  364  php -S localhost:8000
+  365  php -S localhost:8000
+  366  php -S localhost:8000
+  367  lsof -i:8000
+  368  kill 84485
+  369  php -S localhost:8000
+  370  nano README.md
+  371  ls
+  372  php -l /Users/megabrain/Desktop/mapbox-gpt5-mapgame/index.php
+  373  php index.php ws
+  374  php index.php ws
+  375  cd desktop
+  376  mkdir gpt-aim
+  377  cd gpt-aim
+  378  nano index.php
+  379  open index.php
+  380  php -S localhost:8000
+  381  php -S localhost:8000
+  382  php -S localhost:8000
+  383  lsof -i:8000
+  384  kill 87579
+  385  php -S localhost:8000
+  386  php -l /Users/megabrain/Desktop/mapbox-gpt5-mapgame/index.php
+  387  cd desktop
+  388  mkdir enter-world-gaussian
+  389  cd enter-world-gaussian
+  390  nano index.php
+  391  php -S localhost:8000
+  392  php -S localhost:8000
+  393  ls
+  394  rm index.php
+  395  nano index.php
+  396  python3 '/Users/megabrain/Desktop/neural-net-oss/sqlite_viewer.py'
+  397  python3 '/Users/megabrain/Desktop/neural-net-oss/sqlite_viewer.py'
+  398  python3 '/Users/megabrain/Desktop/neural-net-oss/sqlite_viewer.py'
+  399  python neuron_a.py
+  400  python neuron_a.py
+  401  python /mnt/data/neuron_a.py --role review --task \"Design a minimal daily journaling app with data model and MVP features\" --rounds 3
+
+  402  python neuron_a.py --role review --task \"design a minimal note taking app with data model and mvp features\" --rounds 3
+  403  cd desktop
+  404  nano resume.html
+  405  open resume.html
+  406  mkdir neural-net-oss
+  407  cd neural-net-oss
+  408  ls
+  409  nano index.php
+  410  nano app1.py
+  411  python /mnt/data/neuron_b.py --role review
+  412  ls
+  413  python neuron_b.py
+  414  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  415  open index.php
+  416  open index.php
+  417  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  418  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  419  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  420  python3 '/Users/megabrain/Desktop/neural-net-oss/sqlite_viewer.py'
+  421  python sqlite_viewer.py
+  422  python admin_viewer.py
+  423  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  424  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  425  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  426  python neuron_a.py
+  427  ls
+  428  python neuron_a.py
+  429  python neuron_a.py
+  430  python neuron_a.py
+  431  python neuron_a.py --db DB
+  432  python neuron_a.py --db DB --task \"run a complete series of tests on diagnostics of the machine\"
+  433  python neuron_b.py
+  434  python3 '/Users/megabrain/Desktop/melvins-back/ollama_chat.py'
+  435  cd desktop
+  436  nano architect.html
+  437  mkdir melvins-back
+  438  claude
+  439  claude updat
+  440  claude upgrade
+  441  claude doctor
+  442  claude
+  443  sudo npm i -g @anthropic-ai/claude-code
+  444  cd melvins-back
+  445  claude
+  446  php -l /Users/megabrain/Desktop/resume-builder-app-gpt/index.php
+  447  php -l /Users/megabrain/Desktop/resume-builder-app-gpt/index.php
+  448  cd desktop
+  449  mkdir resume-builder-app-gpt
+  450  cd resume-builder-app-gpt
+  451  <?php
+/**
+ * Lalo Resume Builder — single-file PHP app
+ * -----------------------------------------------------------------------------
+ * Features
+ *   • Paste your resume details → AI (GPT-5) normalizes → clean 1-page template
+ *   • Black & white, shadcn-inspired UI
+ *   • Font switcher (Space Grotesk + Plus Jakarta / Outfit + Inter Tight / IBM Plex / System)
+ *   • Perfect-print PDF with zero browser margins (Letter)
+ *
+ * Setup
+ *   1) Put your key in env: OPENAI_API_KEY=sk-...
+ *      (Optional, dev only): you can paste an API key in the UI — don’t do this in prod.
+ *   2) php -S localhost:8000
+ *   3) Visit http://localhost:8000
+ *
+ * Notes
+ *   • Uses OpenAI Responses API with response_format=json_schema (fallback to chat/completions).
+ *   • Model default: gpt-5 (adjust in PHP constant).
+ */
+
+const DEFAULT_MODEL = 'gpt-5'; // adjust to a specific suffix if you prefer, e.g., 'gpt-5-chat-latest'
+const OPENAI_BASE   = 'https://api.openai.com'; // stable base; we call /v1/responses or /v1/chat/completions
+
+header_remove('X-Powered-By');
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'generate') {
+  header('Content-Type: application/json; charset=utf-8');
+
+  $apiKey = getenv('OPENAI_API_KEY') ?: '';
+  if (isset($_POST['api_key']) && trim($_POST['api_key']) !== '') {
+    $apiKey = trim($_POST['api_key']);
+  }
+  if (!$apiKey) {
+    http_response_code(400);
+    echo json_encode(['ok'=>false,'error'=>'Missing API key (set OPENAI_API_KEY or provide one-time key).']);
+    exit;
+  }
+
+  $raw = trim($_POST['raw'] ?? '');
+  $targetRole = trim($_POST['target_role'] ?? '');
+  $style = trim($_POST['style'] ?? 'crisp');
+
+  // System prompt + JSON schema
+  $system = <<<SYS
+You are a resume formatter. Given messy notes, bullets, or an existing resume,
+extract clean, factual content and produce a structured JSON object for a
+single-page, modern two-column resume. Do not invent facts. Use concise,
+achievement-focused bullets that begin with strong verbs and include impact.
+
+Rules:
+- Keep total bullet count tight so it fits on one US Letter page with modest text size.
+- Normalize dates to \"YYYY–YYYY\" or \"YYYY–Present\".
+- Summaries: 2–3 crisp sentences max.
+- Experience bullets: 2–5 per role; quantify impact where possible.
+- Stack lines should be comma-separated; no trailing periods.
+- Links: include a readable label and the URL.
+
+SYS;
+
+  if ($targetRole !== '') {
+    $system .= \"
+Target role: {$targetRole}
+\";
+  }
+  if ($style === 'crisp') {
+    $system .= \"Tone/style: crisp, professional, tech-forward.
+\";
+  } else {
+    $system .= \"Tone/style: {$style}.
+\";
+  }
+
+  // JSON schema for structured outputs
+  $schema = [
+    'type' => 'object',
+    'additionalProperties' => false,
+    'required' => ['name','role','contact','summary','experience','education','stack','strengths'],
+    'properties' => [
+      'name' => ['type'=>'string'],
+      'role' => ['type'=>'string'],
+      'contact' => [
+        'type'=>'object',
+        'additionalProperties'=>false,
+        'required'=>['phone','email','location','links'],
+        'properties'=>[
+          'phone'=>['type'=>'string'],
+          'email'=>['type'=>'string'],
+          'location'=>['type'=>'string'],
+          'links'=>[
+            'type'=>'array',
+            'items'=>[
+              'type'=>'object',
+              'required'=>['label','url'],
+              'additionalProperties'=>false,
+              'properties'=>[
+                'label'=>['type'=>'string'],
+                'url'=>['type'=>'string']
+              ]
+            ]
+          ]
+        ]
+      ],
+      'summary' => ['type'=>'string'],
+      'experience' => [
+        'type'=>'array',
+        'items'=>[
+          'type'=>'object',
+          'required'=>['title','org','location','dates','bullets'],
+          'additionalProperties'=>false,
+          'properties'=>[
+            'title'=>['type'=>'string'],
+            'org'=>['type'=>'string'],
+            'location'=>['type'=>'string'],
+            'dates'=>['type'=>'string'],
+            'bullets'=>['type'=>'array','items'=>['type'=>'string']]
+          ]
+        ]
+      ],
+      'education' => [
+        'type'=>'array',
+        'items'=>[
+          'type'=>'object',
+          'required'=>['school','credential','dates','bullets'],
+          'additionalProperties'=>false,
+          'properties'=>[
+            'school'=>['type'=>'string'],
+            'credential'=>['type'=>'string'],
+            'dates'=>['type'=>'string'],
+            'bullets'=>['type'=>'array','items'=>['type'=>'string']]
+          ]
+        ]
+      ],
+      'stack' => [
+        'type'=>'object',
+        'additionalProperties'=>false,
+        'properties'=>[
+          'Front-end'=>['type'=>'string'],
+          'Back-end'=>['type'=>'string'],
+          'AI & ML'=>['type'=>'string'],
+          'Cloud'=>['type'=>'string'],
+          'Databases'=>['type'=>'string'],
+          'Other'=>['type'=>'string']
+        ]
+      ],
+      'strengths' => [
+        'type'=>'array',
+        'items'=>[
+          'type'=>'object',
+          'required'=>['title','text'],
+          'additionalProperties'=>false,
+          'properties'=>[
+            'title'=>['type'=>'string'],
+            'text'=>['type'=>'string']
+          ]
+        ]
+      ],
+      'languages' => [
+        'type'=>'array',
+        'items'=>[
+          'type'=>'object',
+          'required'=>['label','level'],
+          'properties'=>[
+            'label'=>['type'=>'string'],
+            'level'=>['type'=>'string']
+          ]
+        ]
+      ]
+    ]
+  ];
+
+  $payloadResponses = [
+    'model' => DEFAULT_MODEL,
+    'input' => [
+      ['role'=>'system','content'=>[['type'=>'text','text'=>$system]]],
+      ['role'=>'user','content'=>[['type'=>'text','text'=>$raw]]],
+    ],
+    'temperature' => 0.2,
+    'max_output_tokens' => 4000,
+    'response_format' => [
+      'type' => 'json_schema',
+      'json_schema' => [
+        'name' => 'ResumeSchema',
+        'schema' => $schema,
+        'strict' => true
+      ]
+    ]
+  ];
+
+  $json = http_json('POST', OPENAI_BASE.'/v1/responses', $payloadResponses, $apiKey);
+  $usedEndpoint = '/v1/responses';
+  $usedModel = DEFAULT_MODEL;
+  $parsed = extract_json_from_responses($json);
+
+  // Fallback to chat/completions if needed
+  if (!$parsed['ok']) {
+    $payloadChat = [
+      'model' => DEFAULT_MODEL,
+      'messages' => [
+        ['role'=>'system','content'=>$system.\"
+Return STRICT JSON ONLY using the schema; no backticks, no prose.\"],
+        ['role'=>'user','content'=>$raw]
+      ],
+      'temperature' => 0.2,
+      'response_format' => [
+        'type' => 'json_schema',
+        'json_schema' => [
+          'name'=>'ResumeSchema',
+          'schema'=>$schema,
+          'strict'=>true
+        ]
+      ]
+    ];
+    $json = http_json('POST', OPENAI_BASE.'/v1/chat/completions', $payloadChat, $apiKey);
+    $usedEndpoint = '/v1/chat/completions';
+    $parsed = extract_json_from_chat($json);
+  }
+
+  if (!$parsed['ok']) {
+    http_response_code(502);
+    echo json_encode(['ok'=>false,'error'=>'AI parse failed','details'=>$parsed,'endpoint'=>$usedEndpoint]);
+    exit;
+  }
+
+  echo json_encode(['ok'=>true,'data'=>$parsed['data'],'endpoint'=>$usedEndpoint,'model'=>$usedModel]);
+  exit;
+}
+
+/** Minimal HTTP helper */
+function http_json($method, $url, $body, $apiKey) {
+  $ch = curl_init($url);
+  $payload = json_encode($body);
+  curl_setopt_array($ch, [
+    CURLOPT_CUSTOMREQUEST => $method,
+    CURLOPT_POSTFIELDS => $payload,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER => [
+      'Content-Type: application/json',
+      'Authorization: Bearer '.$apiKey,
+    ],
+    CURLOPT_TIMEOUT => 60,
+  ]);
+  $res = curl_exec($ch);
+  $err = curl_error($ch);
+  $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  curl_close($ch);
+  return [
+    'status'=>$status,
+    'body'=>$res,
+    'error'=>$err
+  ];
+}
+
+/** Parse Responses API */
+function extract_json_from_responses($resp) {
+  if (!isset($resp['body']) || !$resp['body']) return ['ok'=>false,'why'=>'empty'];
+  $obj = json_decode($resp['body'], true);
+  if (!is_array($obj)) return ['ok'=>false,'why'=>'not json','raw'=>$resp['body']];
+
+  // Try official structure: output -> content -> text
+  if (isset($obj['output']) && is_array($obj['output'])) {
+    $buf = '';
+    foreach ($obj['output'] as $item) {
+      if (!isset($item['content'])) continue;
+      foreach ($item['content'] as $c) {
+        // Could be type 'output_text' or 'text'
+        if (isset($c['text'])) $buf .= $c['text'];
+        elseif (isset($c['output_text'])) $buf .= $c['output_text'];
+      }
+    }
+    if ($buf !== '') {
+      $json = try_json_extract($buf);
+      if ($json !== null) return ['ok'=>true,'data'=>$json];
+    }
+  }
+  // Some SDKs expose output_text (not guaranteed in raw HTTP)
+  if (isset($obj['output_text']) && is_string($obj['output_text'])) {
+    $json = try_json_extract($obj['output_text']);
+    if ($json !== null) return ['ok'=>true,'data'=>$json];
+  }
+
+  // As a last resort, scan entire body
+  $json = try_json_extract($resp['body']);
+  return $json !== null ? ['ok'=>true,'data'=>$json] : ['ok'=>false,'why'=>'no json in responses body'];
+}
+
+/** Parse Chat Completions fallback */
+function extract_json_from_chat($resp) {
+  if (!isset($resp['body']) || !$resp['body']) return ['ok'=>false,'why'=>'empty'];
+  $obj = json_decode($resp['body'], true);
+  if (!is_array($obj)) return ['ok'=>false,'why'=>'not json','raw'=>$resp['body']];
+  $text = $obj['choices'][0]['message']['content'] ?? '';
+  $json = try_json_extract($text ?: $resp['body']);
+  return $json !== null ? ['ok'=>true,'data'=>$json] : ['ok'=>false,'why'=>'no json in chat body'];
+}
+
+/** Try to decode as JSON; if not, attempt to extract the first {...} block */
+function try_json_extract($text) {
+  $text = trim($text);
+  $j = json_decode($text, true);
+  if (is_array($j)) return $j;
+  // Extract first balanced JSON object
+  $start = strpos($text, '{');
+  $end = strrpos($text, '}');
+  if ($start !== false && $end !== false && $end > $start) {
+    $slice = substr($text, $start, $end - $start + 1);
+    $j2 = json_decode($slice, true);
+    if (is_array($j2)) return $j2;
+  }
+  return null;
+}
+?>
+<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+<meta charset=\"utf-8\" />
+<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+<title>Lalo Resume Builder — AI + PDF</title>
+
+<!-- Fonts for presets -->
+<link href=\"https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400..800&family=Space+Grotesk:wght@500;700&display=swap\" rel=\"stylesheet\">
+<link href=\"https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Inter+Tight:wght@400;500;700&display=swap\" rel=\"stylesheet\">
+<link href=\"https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;700&display=swap\" rel=\"stylesheet\">
+
+<style>
+  :root{
+    --bg:#fff; --fg:#0b0b0b; --muted:#5a5a5a; --line:#e6e6e6; --accent:#000; --accent-ink:#000;
+    --font-display: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial;
+    --font-body: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial;
+  }
+  ::selection{ background:#000; color:#fff; }
+
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--fg); font-family:var(--font-body); font-size:16px; line-height:1.35; }
+  *{ box-sizing:border-box; font-variant-numeric: tabular-nums; }
+
+  .app{ max-width:1100px; margin:32px auto 80px; padding:0 16px; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+  .brand{ font-weight:800; letter-spacing:.02em; }
+  .btn{
+    appearance:none; border:1.5px solid #000; background:#fff; color:#000;
+    padding:10px 12px; border-radius:10px; font-weight:700; cursor:pointer;
+  }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .ghost{ background:#fff; }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace; }
+
+  .panel{ border:1.5px solid var(--fg); border-radius:12px; padding:14px; background:#fff; }
+  .grid{ display:grid; grid-template-columns: 1.3fr .7fr; gap:16px; }
+  .stack-v{ display:flex; flex-direction:column; gap:10px; }
+  .stack-h{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+  /* Resume sheet (B/W shadcn-ish) */
+  .page{ margin-top:16px; border:1.5px solid #000; border-radius:14px; padding:18px; }
+  .header{ display:grid; grid-template-columns:1fr 160px; gap:16px; align-items:start; margin-bottom:12px; }
+  .headshot{ width:160px; height:160px; border-radius:50%; background:#e9e9e9 center/cover no-repeat; border:6px solid #fff; outline:1.5px solid #000; }
+  .title h1{ margin:0; font-family:var(--font-display); font-size:32px; letter-spacing:.2px; }
+  .role{ margin-top:4px; font-weight:700; font-family:var(--font-display); }
+  .contacts{ display:flex; flex-wrap:wrap; gap:8px 16px; margin-top:8px; color:var(--muted); font-size:14px; }
+  .cols{ display:grid; grid-template-columns: 1.9fr 1fr; gap:18px; }
+
+  .section{ margin-top:14px; }
+  .section h2{ margin:0 0 8px; font-size:13px; letter-spacing:.12em; text-transform:uppercase; font-weight:800; border-bottom:1.5px solid #000; padding-bottom:6px; font-family:var(--font-display); }
+  .job{ margin:10px 0 0; }
+  .job h3{ margin:0; font-size:16px; font-weight:800; font-family:var(--font-display); }
+  .meta{ color:var(--muted); font-size:13px; margin-top:2px; }
+  ul{ margin:8px 0 0 16px; padding:0; }
+  li{ margin:5px 0; }
+
+  .card{ border:1.5px solid #000; border-radius:10px; padding:12px; margin:10px 0; background:#fff; }
+  .stack .row{ display:grid; grid-template-columns:120px 1fr; gap:10px; align-items:start; margin:8px 0; }
+  .stack .label{ font-weight:700; font-family:var(--font-display); }
+  .small{ font-size:13px; color:var(--muted); }
+  .divider{ height:1px; background:#000; opacity:.15; margin:12px 0 0; }
+
+  /* Controls */
+  .actions{ display:flex; gap:8px; align-items:center; }
+  .right-actions{ display:flex; gap:8px; }
+
+  /* Print: exact Letter page, zero margins */
+  @page { size: Letter; margin: 0; }
+  @media print{
+    :root{ --print-scale: 0.92; }
+    body{ background:#fff!important; font-size:12px; }
+    .no-print{ display:none!important; }
+    .page{
+      width:8.5in!important; height:11in!important; margin:0!important; padding:0.25in!important; border:0!important;
+    }
+    .page > .print-wrap{
+      width: calc(8.0in / var(--print-scale));
+      transform: scale(var(--print-scale));
+      transform-origin: top left;
+    }
+    .cols{ grid-template-columns:5.1in 2.65in!important; gap:0.20in!important; }
+    .header{ grid-template-columns:1fr 1.25in!important; gap:0.12in!important; margin-bottom:0.10in!important; }
+    .headshot{ width:1.25in!important; height:1.25in!important; outline:1px solid #000; border:0.12in solid #fff; }
+    .title h1{ font-size:18pt!important; }
+    .role{ font-size:10.5pt!important; }
+    .contacts{ font-size:8.8pt!important; }
+    .section h2{ font-size:10pt!important; }
+    .job h3{ font-size:10.5pt!important; }
+    .meta{ font-size:8.6pt!important; }
+    li{ font-size:9.2pt!important; line-height:1.22!important; }
+    .stack .row{ grid-template-columns:1.05in 1fr!important; gap:0.10in!important; }
+    .section,.card,.header,.stack .row{ break-inside:avoid; }
+    p,li,h3{ orphans:3; widows:3; }
+  }
+</style>
+</head>
+<body>
+  <div class=\"app\">
+    <div class=\"topbar no-print\">
+      <div class=\"brand\">Resume Builder • AI + PDF</div>
+      <div class=\"right-actions\">
+        <button id=\"fontToggle\" class=\"btn\">Font: System</button>
+        <button class=\"btn\" onclick=\"window.print()\">Download PDF</button>
+      </div>
+    </div>
+
+    <div class=\"grid no-print\">
+      <div class=\"panel\">
+        <div class=\"stack-v\">
+          <div><strong>Paste your resume notes or data</strong> (jobs, bullets, education, links, etc.)</div>
+          <textarea id=\"raw\" class=\"panel mono\" style=\"width:100%;height:220px; border:1.5px solid #000; border-radius:10px; padding:10px;\"></textarea>
+          <div class=\"stack-h\">
+            <input id=\"targetRole\" type=\"text\" placeholder=\"Target role (optional)\" style=\"flex:1; border:1.5px solid #000; border-radius:10px; padding:10px;\">
+            <select id=\"style\" style=\"border:1.5px solid #000; border-radius:10px; padding:10px;\">
+              <option value=\"crisp\">Style: Crisp</option>
+              <option value=\"executive\">Style: Executive</option>
+              <option value=\"impact\">Style: Impact-forward</option>
+              <option value=\"academic\">Style: Academic</option>
+            </select>
+          </div>
+          <details>
+            <summary>Advanced (API key)</summary>
+            <div class=\"small\" style=\"margin:8px 0\">If <code>OPENAI_API_KEY</code> isn’t set on the server, paste a one-time key here (local dev only).</div>
+            <input id=\"apiKey\" type=\"password\" placeholder=\"sk-...\" style=\"width:100%; border:1.5px solid #000; border-radius:10px; padding:10px;\">
+          </details>
+          <div class=\"actions\">
+            <button id=\"buildBtn\" class=\"btn\">Build with AI</button>
+            <span id=\"status\" class=\"small\" style=\"margin-left:8px;\"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class=\"panel\">
+        <div class=\"small\"><strong>Tip:</strong> After AI builds it, tweak bullets and stack text live in the canvas before printing.</div>
+        <ul class=\"small\" style=\"margin-top:6px\">
+          <li>Keep text concise—fewer bullets beat overflow.</li>
+          <li>Use the Font button to preview different looks.</li>
+          <li>If it barely overflows, reduce print scale in CSS <code>--print-scale</code> a notch.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Resume Canvas -->
+    <div class=\"page\">
+      <div class=\"print-wrap\">
+        <section class=\"header\">
+          <div class=\"title\">
+            <h1 class=\"js-name\">Your Name</h1>
+            <div class=\"role js-role\">Your Role</div>
+            <div class=\"contacts js-contacts\">Phone • Email • Location • Links</div>
+          </div>
+          <div class=\"headshot js-headshot\" role=\"img\" aria-label=\"Headshot\"></div>
+        </section>
+
+        <section class=\"cols\">
+          <!-- LEFT -->
+          <div>
+            <div class=\"section js-experience\">
+              <h2>Experience</h2>
+              <!-- jobs will be injected here -->
+            </div>
+
+            <div class=\"section stack js-stack\">
+              <h2>Favorite Tech Stack</h2>
+              <!-- stack rows injected -->
+            </div>
+          </div>
+
+          <!-- RIGHT -->
+          <div>
+            <div class=\"section\">
+              <h2>Profile</h2>
+              <div class=\"card small js-summary\">
+                Paste content and click “Build with AI”.
+              </div>
+            </div>
+
+            <div class=\"section js-education\">
+              <h2>Education</h2>
+              <!-- schools injected -->
+            </div>
+
+            <div class=\"section js-strengths\">
+              <h2>Strengths</h2>
+              <div class=\"card small\"><ul style=\"margin-left:16px; margin-top:0\" class=\"js-strengths-list\"></ul></div>
+            </div>
+
+            <div class=\"section js-languages\" style=\"display:none;\">
+              <h2>Languages</h2>
+              <div class=\"card small js-languages-list\"></div>
+            </div>
+          </div>
+        </section>
+
+        <div class=\"divider\"></div>
+        <div class=\"small\">References available upon request.</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* --------------------------- Font switcher --------------------------- */
+(function(){
+  const presets = [
+    { key:'sleek',    label:'Sleek Tech',        display:'\"Space Grotesk\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, Arial', body:'\"Plus Jakarta Sans\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, Arial' },
+    { key:'grotesk',  label:'Confident Grotesk', display:'\"Outfit\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, Arial',        body:'\"Inter Tight\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, Arial' },
+    { key:'plex',     label:'IBM Plex Sans',     display:'\"IBM Plex Sans\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, Arial', body:'\"IBM Plex Sans\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, Arial' },
+    { key:'system',   label:'System',            display:'-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial',                        body:'-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Arial' }
+  ];
+  const btn = document.getElementById('fontToggle');
+  const root = document.documentElement;
+
+  function applyPreset(p){
+    root.style.setProperty('--font-display', p.display);
+    root.style.setProperty('--font-body', p.body);
+    btn.textContent = 'Font: ' + p.label;
+    localStorage.setItem('resume_font_preset', p.key);
+  }
+  function getPresetByKey(key){ return presets.find(p => p.key === key) || presets[0]; }
+
+  const saved = localStorage.getItem('resume_font_preset');
+  applyPreset(saved ? getPresetByKey(saved) : presets[0]);
+
+  btn.addEventListener('click', () => {
+    const idx = presets.findIndex(p => p.key === localStorage.getItem('resume_font_preset') || presets[0].key);
+    const next = presets[(idx + 1) % presets.length];
+    applyPreset(next);
+  });
+})();
+
+/* --------------------------- Build with AI --------------------------- */
+const el = (sel) => document.querySelector(sel);
+const els = (sel) => Array.from(document.querySelectorAll(sel));
+const setHTML = (node, html) => { node.innerHTML = html; };
+
+function escapeHTML(s=''){ return s.replace(/[&<>\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#039;'}[m])); }
+
+function renderContacts(c){
+  const phone = c.phone ? escapeHTML(c.phone) : '';
+  const email = c.email ? `<a href=\"mailto:${escapeHTML(c.email)}\">${escapeHTML(c.email)}</a>` : '';
+  const loc = c.location ? escapeHTML(c.location) : '';
+  const links = (c.links||[]).map(x => `<a href=\"${escapeHTML(x.url)}\">${escapeHTML(x.label)}</a>`).join(' · ');
+  return [phone, email, loc, links].filter(Boolean).join(' · ');
+}
+
+function renderExperience(items){
+  return items.map(job => {
+    const bullets = (job.bullets||[]).map(b => `<li>${escapeHTML(b)}</li>`).join('');
+    return `
+      <div class=\"job\">
+        <h3>${escapeHTML(job.title)}</h3>
+        <div class=\"meta\">${escapeHTML(job.org)} · ${escapeHTML(job.location)} · ${escapeHTML(job.dates)}</div>
+        <ul>${bullets}</ul>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderEducation(items){
+  return items.map(ed => {
+    const bullets = (ed.bullets||[]).map(b => `<div class=\"small\">• ${escapeHTML(b)}</div>`).join('');
+    return `
+      <div class=\"card\">
+        <h3>${escapeHTML(ed.school)}</h3>
+        <div class=\"small\">${escapeHTML(ed.credential)} · ${escapeHTML(ed.dates)}</div>
+        <div class=\"small\" style=\"margin-top:6px\">${bullets}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderStack(stack){
+  const labels = ['Front-end','Back-end','AI & ML','Cloud','Databases','Other'];
+  return labels.map(lbl => {
+    const val = stack && stack[lbl] ? escapeHTML(stack[lbl]) : '';
+    if (!val) return '';
+    return `<div class=\"row\"><div class=\"label\">${lbl}</div><div>${val}</div></div>`;
+  }).join('');
+}
+
+function renderStrengths(items){
+  return items.map(s => `<li><strong>${escapeHTML(s.title)}</strong> — ${escapeHTML(s.text)}</li>`).join('');
+}
+
+function renderLanguages(items){
+  if (!items || !items.length) return '';
+  return items.map(l => `<div><strong>${escapeHTML(l.label)}</strong> — ${escapeHTML(l.level)}</div>`).join('');
+}
+
+document.getElementById('buildBtn').addEventListener('click', async () => {
+  const status = document.getElementById('status');
+  const btn = document.getElementById('buildBtn');
+  const raw = document.getElementById('raw').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const targetRole = document.getElementById('targetRole').value.trim();
+  const style = document.getElementById('style').value;
+
+  if (!raw) { status.textContent = 'Paste some content first 🙏'; return; }
+
+  btn.disabled = true; status.textContent = 'Building with GPT-5…';
+
+  try{
+    const form = new FormData();
+    form.append('action','generate');
+    form.append('raw', raw);
+    form.append('target_role', targetRole);
+    form.append('style', style);
+    if (apiKey) form.append('api_key', apiKey);
+
+    const r = await fetch(location.href, { method:'POST', body: form });
+    const js = await r.json();
+
+    if (!js.ok) throw new Error(js.error || 'Failed');
+
+    const d = js.data;
+
+    // Fill header
+    el('.js-name').textContent = d.name || 'Your Name';
+    el('.js-role').textContent = d.role || 'Your Role';
+    el('.js-contacts').innerHTML = renderContacts(d.contact || {});
+
+    // Headshot (optional) — if user included a link in links with label Headshot, use it
+    try{
+      const head = (d.contact?.links || []).find(x => (x.label||'').toLowerCase().includes('headshot'));
+      const url = head ? head.url : '';
+      el('.js-headshot').style.backgroundImage = url ? `url('${url}')` : '';
+    }catch(e){}
+
+    // Summary
+    el('.js-summary').textContent = d.summary || '';
+
+    // Experience
+    setHTML(el('.js-experience'), `<h2>Experience</h2>${renderExperience(d.experience || [])}`);
+
+    // Stack
+    setHTML(el('.js-stack'), `<h2>Favorite Tech Stack</h2>${renderStack(d.stack || {})}`);
+
+    // Education
+    setHTML(el('.js-education'), `<h2>Education</h2>${renderEducation(d.education || [])}`);
+
+    // Strengths
+    el('.js-strengths-list').innerHTML = renderStrengths(d.strengths || []);
+
+    // Languages (optional)
+    const langWrap = el('.js-languages');
+    const langList = el('.js-languages-list');
+    if (d.languages && d.languages.length){
+      langList.innerHTML = renderLanguages(d.languages);
+      langWrap.style.display = '';
+    } else {
+      langWrap.style.display = 'none';
+    }
+
+    status.textContent = `Done via ${js.endpoint} ✅`;
+  } catch(err){
+    console.error(err);
+    status.textContent = `Error: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
+nano
+  452  nano index.php
+  453  php -S localhost:8000
+  454  php -S localhost:8000
+  455  php -S localhost:8000
+  456  php -S localhost:8000
+  457  python3 '/Users/megabrain/Desktop/melvins-back/ollama_chat.py'
+  458  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  459  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  460  python3 '/Users/megabrain/Desktop/claude-makes-gp5-app/app.py'
+  461  php -S localhost:8000
+  462  php -S localhost:8000
+  463  php -S localhost:8000
+  464  php -S localhost:8000
+  465  php -S localhost:8000
+  466  cd '/Users/megabrain/Desktop/resume-builder-app-gpt' && php -S localhost:8000
+  467  cd '/Users/megabrain/Desktop/resume-builder-app-gpt' && php -S localhost:8000
+  468  cd '/Users/megabrain/Desktop/resume-builder-app-gpt' && php -S localhost:8000
+  469  open index.php
+  470  cd '/Users/megabrain/Desktop/resume-builder-app-gpt' && php -S localhost:8000
+  471  cd '/Users/megabrain/Desktop/all-5-llms' && php -S localhost:8000
+  472  cd '/Users/megabrain/Desktop/all-5-llms' && php -S localhost:8000
+  473  cd '/Users/megabrain/Desktop/all-5-llms' && php -S localhost:8000
+  474  cd '/Users/megabrain/Desktop/all-5-llms' && php -S localhost:8000
+  475  cd '/Users/megabrain/Desktop/all-5-llms' && php -S localhost:8000
+  476  cd '/Users/megabrain/Desktop/all-5-llms' && php -S localhost:8000
+  477  cd '/Users/megabrain/Desktop/all-5-llms' && php -S localhost:8000
+  478  cd '/Users/megabrain/Desktop/all-5-llms' && php -S localhost:8000
+  479  ls
+  480  python penguin_spin_animation.py
+  481  cd desktop
+  482  nano in.html
+  483  open in.html
+  484  cd '/Users/megabrain/Desktop/code-stream-video-creator' && npm run dev
+  485  cd desktop
+  486  mkdir ej.laloadrianmorales.com.ai
+  487  cd ej.laloadrianmorales.com.ai
+  488  nano index.php
+  489  cd
+  490  cd desktop
+  491  nano ej.html
+  492  cd desktop
+  493  mkdir png-to-ico
+  494  cd png-to-ico
+  495  nano app.py
+  496  python app.py
+  497  rm app.py
+  498  nano app.py
+  499  python app.py
+  500  python app.py input.png
+  501  ls
+  502  python app.py image.pny
+  503  python app.py image.png
+  504  claude
+  505  php -S localhost:8000
+  506  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  507  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  508  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  509  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  510  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  511  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  512  lsof -i:8000
+  513  kill 24335
+  514  php -S localhost:8000
+  515  ls
+  516  php index.php ws
+  517  cd '/Users/megabrain/Desktop/enter-world-gaussian' && php -S localhost:8000
+  518  claude
+  519  ls
+  520  rm test.html
+  521  ls
+  522  claude
+  523  cd desktop
+  524  nano app.py
+  525  python app.py
+  526  pip install trimesh
+  527  python app.py
+  528  pip install open3d
+  529  pip install --upgrade pip
+  530  pip uninstall open3d
+  531  pip uninstall trimesh
+  532  mkdir gaussian-game-python
+  533  cd gaussian-game-python
+  534  python -m venv venv
+  535  source venv/bin/activate
+  536  ls
+  537  python app.py
+  538  nano requirements.txt
+  539  pip install -r requirements.txt
+  540  python app.py
+  541  pip install numpy
+  542  python app.py
+  543  pip install trimesh
+  544  python app.py
+  545  pip install open3d
+  546  python app.py
+  547  python app.py
+  548  nano Dockerfile
+  549  nano .env
+  550  ls
+  551  rm Dockerfile
+  552  nano Dockerfile
+  553  nano Dockerfile.prod
+  554  nano docker-compose.yml
+  555  nano .dockerignore
+  556  nano docker-entrypoint.sh
+  557  nano Docker-compose.prod.yml
+  558  nano build-and-run.sh
+  559  nano nginx.conf
+  560  nano README.md
+  561  lsof i
+  562  lsof -c
+  563  lsof -h
+  564  lsof -i -P -n | grep LISTEN
+  565  lsof -i -P -n | grep LISTEN
+  566  cd desktop
+  567  mkdir math
+  568  cd math
+  569  nano math.html
+  570  open math.html
+  571  npm install
+  572  npm run dist
+  573  php -l /Users/megabrain/Software/Subdomains/ej.laloadrianmorales.com.ai/html-gallery.php
+  574  php -l /Users/megabrain/Software/Subdomains/ej.laloadrianmorales.com.ai/html-gallery.php
+  575  php -l /Users/megabrain/Software/Subdomains/ej.laloadrianmorales.com.ai/html-gallery.php
+  576  php -l /Users/megabrain/Software/Subdomains/ej.laloadrianmorales.com.ai/html-gallery.php
+  577  ls
+  578  php -S localhost:8000
+  579  cd desktop
+  580  mkdir mathe
+  581  cd mathe
+  582  nano math.html
+  583  open math.html
+  584  open math.html
+  585  cd
+  586  cd desktop
+  587  cd billion
+  588  ls
+  589  python -m venv venv
+  590  source venv/bin/activate
+  591  pip install -r requirements.txt
+  592  cp .env.example .env
+  593  open -a vsc.app .
+  594  cd desktop
+  595  nano review-transcript.txt
+  596  cd desktop
+  597  git2txt https://github.com/ollama/ollama-python
+  598  gemini
+  599  npm install -g @google/gemini-cli
+  600  gemini
+  601  nano index.html
+  602  open -a cursor.app .
+  603  ls
+  604  mv index.html desktop
+  605  cd desktop
+  606  open index.html
+  607  mkdir billion
+  608  mv index.html billion
+  609  cd billion
+  610  claude
+  611  claude
+  612  claude
+  613  claude
+  614  sudo mactop
+  615  cd desktop
+  616  git clone https://github.com/mendableai/open-lovable.git
+  617  cd open-lovable
+  618  ls
+  619  open -a vsc.app .
+  620  ls
+  621  ./start.sh
+  622  cd desktop
+  623  mkdir rust-locktfin
+  624  cd rust-locktfin
+  625  cd ../
+  626  rm rust-locktfin
+  627  rm rust-locktfin
+  628  rm -rf rust-locktfin
+  629  mkdir locktfin && cd locktfin
+  630  mkdir -p Sources/LockTFin
+  631  cd sources/locktfin
+  632  nano Info.plist
+  633  cd ../
+  634  cd ../
+  635  nano project.yml
+  636  cd sources/locktfin
+  637  nano AppDelegate.swift
+  638  nano VisualEffectView.swift
+  639  nano FocusViewModel.swift
+  640  nano ContentView.swift
+  641  xcodegen generate
+  642  brew install xcodegen
+  643  xcode-select --install
+  644  xcode generate
+  645  xcodegen generate
+  646  cd ../
+  647  cd ../
+  648  xcodegen generate
+  649  xcodebuild -project LockTFin.xcodeproj -scheme LockTFin -configuration Debug -derivedDataPath .build
+
+  650  open .build/Build/Products/Debug/LockTFin.app
+
+  651  claude
+  652  npm install
+  653  npm start
+  654  claude
+  655  claude
+  656  ls
+  657  ./start.sh
+  658  ./start.sh
+  659  ./start.sh
+  660  npm install
+  661  npm start
+  662  npm start
+  663  npm start
+  664  npm start
+  665  npm start
+  666  npm start
+  667  npm start
+  668  npm start
+  669  npm start
+  670  npm start
+  671  npm start
+  672  npm start
+  673  npm start
+  674  npm start
+  675  npm start
+  676  npm start
+  677  npm start
+  678  npm start
+  679  npm start
+  680  npm start
+  681  npm start
+  682  npm start
+  683  npm start
+  684  npm start
+  685  npm start
+  686  open -a cursor.app .
+  687  open -a cursor.app .
+  688  npm start
+  689  npm start
+  690  ls
+  691  brew tap lalomorales22/lock-tf-in-app homebrew-locktfin --cask locktfin
+  692  brew tap lalomorales22/lock-tf-in-app homebrew-locktfin
+  693  brew tap lalomorales22/lock-tf-in-app https://github.com/lalomorales22/lock-tf-in-app.git homebrew-locktfin
+  694  brew tap lalomorales22/lock-tf-in-app https://github.com/lalomorales22/lock-tf-in-app.git homebrew-locktfin
+  695  brew tap lalomorales22/lock-tf-in-app
+  https://github.com/lalomorales22/lock-tf-in-app.git --custom-remote
+  696  brew install --cask https://raw.githubusercontent.com/lalomorales22/lock-
+  tf-in-app/main/homebrew-locktfin/Casks/locktfin.rb
+  697  git add .
+  698  git commit -m \"initial\"
+  699  git remote add origin
+  700  git init
+  701  git add
+  702  git add .
+  703  git commit -m \"first\"
+  704  git branch -M main
+  705  git remote add origin git@github.com:lalomorales22/homebrew-locktfin.git
+  706  git push -u origin main
+  707  brew tap lalomorales22/locktfin
+  708  brew install --cask locktfin
+  709  brew uninstall --cask locktfin
+  710  claude
+  711  cd desktop
+  712  nano gemini-notes.html
+  713  cd '/Users/megabrain/Desktop/gemini-notes' && php -S localhost:8000
+  714  cd desktop
+  715  ls
+  716  cd billion
+  717  gemini
+  718  cd desktop
+  719  ls
+  720  cd mathe
+  721  ls
+  722  claude
+  723  sudo npm i -g @anthropic-ai/claude-code
+  724  claude
+  725  cd '/Users/megabrain/Desktop/sick-notes-app-w-gemini' && php -S localhost:8000
+  726  codex
+  727  cd desktop
+  728  git2txt https://github.com/junkdog/tachyonfx
+  729  npm install
+  730  npm start
+  731  npm run dev
+  732  npm run
+  733  ./grok-4=cli chat \"hey, you there\"
+  734  ./grok-4-cli chat \"hey you there\"
+  735  cd
+  736  cd desktop
+  737  nano test.html
+  738  nano project.txt
+  739  gemini
+  740  grok
+  741  grok
+  742  grok
+  743  grok
+  744  grok
+  745  ./start.sh
+  746  npm start
+  747  cursor
+  748  cursorcli
+  749  curl https://cursor.com/install -fsS | bash
+  750  cursor-agent
+  751  npm start
+  752  nano index.php
+  753  php -S localhost:8000
+  754  ollama list
+  755  ollama create gpt-lalOSS -f ./Modelfile
+  756  cd desktop
+  757  mkdir ollama
+  758  cd ollama
+  759  nano Modelfile
+  760  ollama show gpt-laloss --modelfile
+  761  ls
+  762  cat ./Modelfile
+  763  ollama create gpt-lalOSS -f ./Modelfile
+  764  ollama show gpt-lalOSS --modelfile
+  765  ollama list
+  766  ollama show gpt-lalOSS --modelfile
+  767  ollama list
+  768  ollama rm gpt-lalOSS:latest
+  769  ls
+  770  ollama list
+  771  ollama ls
+  772  ls
+  773  rm Modelfile
+  774  ls
+  775  cd
+  776  mkdir -p ~/ollama-builds/gpt-laloss:20b
+  777  cd ~/ollama-builds/gpt-laloss:20b
+  778  cat > Modelfile <<'EOF'
+FROM gpt-oss:20b
+
+# Core parameters for responsiveness, coherence, and creativity
+PARAMETER num_ctx 8192
+PARAMETER temperature 0.8
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER repeat_last_n 64
+PARAMETER repeat_penalty 1.1
+PARAMETER num_predict -1
+
+# Stop sequences for clean output (Llama 3/3.1/3.2-style chat format)
+PARAMETER stop \"<|start_header_id|>\"
+PARAMETER stop \"<|end_header_id|>\"
+PARAMETER stop \"<|eot_id|>\"
+
+# Epic system message
+SYSTEM \"\"\"
+You are ChatGPT, a large language model based on the GPT-5 model and trained by OpenAI. Knowledge cutoff: 2024-06. Current date: 2025-08-12.
+
+Image input capabilities: Enabled. Personality: v2. Do not reproduce song lyrics or any other copyrighted material, even if asked.
+
+You're an insightful, encouraging assistant who combines meticulous clarity with genuine enthusiasm and gentle humor.
+
+Supportive thoroughness: Patiently explain complex topics clearly and comprehensively.
+Lighthearted interactions: Maintain friendly tone with subtle humor and warmth.
+Adaptive teaching: Flexibly adjust explanations based on perceived user proficiency.
+Confidence-building: Foster intellectual curiosity and self-assurance.
+
+Do not end with opt-in questions or hedging closers. Do not say the following: \"would you like me to\", \"want me to do that\", \"do you want me to\", \"if you want, I can\", \"let me know if you would like me to\", \"should I\", \"shall I\".
+Ask at most one necessary clarifying question at the start, not the end.
+If the next step is obvious, do it.
+
+Example of bad: \"I can write playful examples. Would you like me to?\"
+Example of good: \"Here are three playful examples:\"
+
+You also understand the following tool instructions, capabilities, and constraints, and must follow them exactly when applicable:
+
+[Tools Overview]
+- bio tool: Persists important long-term user preferences and facts.
+- automations tool: Creates scheduled tasks and reminders.
+- canmore tool: Manages long-form code/document editing sessions.
+- file_search tool: Retrieves facts from uploaded or indexed files.
+- image_gen tool: Generates or edits images.
+- python tool: Executes Python code in an isolated Jupyter environment.
+- guardian_tool: Retrieves content policy info for US election-related queries.
+- web tool: Searches the internet for fresh, niche, or high-accuracy needs.
+
+Follow all stated behavior, formatting, and accuracy requirements for these tools.
+\"\"\"
+
+# Template — uses the system, user, and assistant message formatting (Llama-style)
+TEMPLATE \"\"\"{{ if .System }}<|start_header_id|>system<|end_header_id|>
+{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>
+{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>
+{{ .Response }}<|eot_id|>\"\"\"
+
+LICENSE \"\"\"
+MIT License
+Copyright (c) 2025
+Permission is hereby granted, free of charge, to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of this Modelfile.
+\"\"\"
+EOF
+  779  ls
+  780  ollama create gpt-laloss-epic -f \"$(pwd)/Modelfile\"
+
+  781  ollama show gpt-laloss-epic --modelfile
+
+  782  ollama list
+  783  rm gpt-laloss-epic:latest
+  784  ls
+  785  ollama list
+  786  ollama rm gpt-laloss-epic:latest
+  787  ollama list
+  788  ls
+  789  cat > Modelfile <<'EOF'
+FROM gpt-oss:20b
+
+# Core parameters for responsiveness, coherence, and creativity
+PARAMETER num_ctx 8192
+PARAMETER temperature 0.8
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER repeat_last_n 64
+PARAMETER repeat_penalty 1.1
+PARAMETER num_predict -1
+
+# Stop sequences for clean output (Llama 3/3.1/3.2-style chat format)
+PARAMETER stop \"<|start_header_id|>\"
+PARAMETER stop \"<|end_header_id|>\"
+PARAMETER stop \"<|eot_id|>\"
+
+# Epic system message
+SYSTEM \"\"\"
+You are ChatGPT, a large language model based on the GPT-5 model and trained by OpenAI. Knowledge cutoff: 2024-06. Current date: 2025-08-12.
+
+Image input capabilities: Enabled. Personality: v2. Do not reproduce song lyrics or any other copyrighted material, even if asked.
+
+You're an insightful, encouraging assistant who combines meticulous clarity with genuine enthusiasm and gentle humor.
+
+Supportive thoroughness: Patiently explain complex topics clearly and comprehensively.
+Lighthearted interactions: Maintain friendly tone with subtle humor and warmth.
+Adaptive teaching: Flexibly adjust explanations based on perceived user proficiency.
+Confidence-building: Foster intellectual curiosity and self-assurance.
+
+Do not end with opt-in questions or hedging closers. Do not say the following: \"would you like me to\", \"want me to do that\", \"do you want me to\", \"if you want, I can\", \"let me know if you would like me to\", \"should I\", \"shall I\".
+Ask at most one necessary clarifying question at the start, not the end.
+If the next step is obvious, do it.
+
+Example of bad: \"I can write playful examples. Would you like me to?\"
+Example of good: \"Here are three playful examples:\"
+
+You also understand the following tool instructions, capabilities, and constraints, and must follow them exactly when applicable:
+
+[Tools Overview]
+- bio tool: Persists important long-term user preferences and facts.
+- automations tool: Creates scheduled tasks and reminders.
+- canmore tool: Manages long-form code/document editing sessions.
+- file_search tool: Retrieves facts from uploaded or indexed files.
+- image_gen tool: Generates or edits images.
+- python tool: Executes Python code in an isolated Jupyter environment.
+- guardian_tool: Retrieves content policy info for US election-related queries.
+- web tool: Searches the internet for fresh, niche, or high-accuracy needs.
+
+Follow all stated behavior, formatting, and accuracy requirements for these tools.
+\"\"\"
+
+# Template — uses the system, user, and assistant message formatting (Llama-style)
+TEMPLATE \"\"\"{{ if .System }}<|start_header_id|>system<|end_header_id|>
+{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>
+{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>
+{{ .Response }}<|eot_id|>\"\"\"
+
+LICENSE \"\"\"
+MIT License
+Copyright (c) 2025
+Permission is hereby granted, free of charge, to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of this Modelfile.
+\"\"\"
+EOF
+
+  790  ollama create gpt-laloss:20b -f \"$(pwd)/Modelfile\"
+  791  ollama show gpt-laloss:20b --modelfile
+  792  ls
+  793  ollama list
+  794  ollama run gpt-laloss:20b
+  795  claude
+  796  npm i -g @anthropic/claude-code
+  797  claude
+  798  npm i -g @anthropic-ai/claude-code
+  799  claude
+  800  sudo npm i -g @anthropic-ai/claude-code
+  801  claude
+  802  grok
+  803  cd desktop
+  804  nano subs.srt
+  805  ls
+  806  ./docker-setup.sh
+  807  docker-compose up --build -d
+  808  docker-compose up --build -d
+  809  ls
+  810  sudo mactop
+  811  ls
+  812  ./start.sh
+  813  claude
+  814  ./start.sh
+  815  source venv/bin/activate
+  816  ./start.sh
+  817  npm start
+  818  python app.py
+  819  claude
+  820  source /Users/megabrain/Desktop/billion-dollar-company/venv/bin/activate
+  821  claude
+  822  source /Users/megabrain/Desktop/billion-dollar-company/venv/bin/activate
+  823  cd desktop
+  824  mkdir codex
+  825  cd codex
+  826  codex
+  827  cd desktop
+  828  mkdir gem
+  829  cd gem
+  830  gemini
+  831  cd
+  832  cd desktop
+  833  git2txt https://github.com/lalomorales22/oss-batch-processor
+  834  cd codex
+  835  ls
+  836  python app.py
+  837  python app.py
+  838  claude
+  839  python app.py
+  840  claude
+  841  ls
+  842  python app.py
+  843  source .venv/bin/activate
+  844  python obp-cli.py
+  845  ls
+  846  python obp-gui.py
+  847  open -a cursor.app .
+  848  ls
+  849  source .venv/bin/activate
+  850  ls
+  851  python obp-cli.py
+  852  python obp-cli.py --status
+  853  ls
+  854  python obp-cli.py --clear
+  855  python obp-cli.py --clear-all
+  856  python obp-cli.py
+  857  python obp-CLI.py --add-file tasks.txt
+  858  python obp-cli.py --run
+  859  python obp-cli.py
+  860  python obp-cli.py --status
+  861  python obp-cli.py --clear-all
+  862  ls
+  863  cd '/Users/megabrain/Desktop/oss-batch-processor/workspace' && php -S localhost:8000
+  864  sudo npm i -g @anthropic-ai/claude-code
+  865  claude
+  866  claude
+  867  claude doctor
+  868  claude
+  869  npm install i -g @anthropic-ai/claude-code
+  870  sudo npm install i -g @anthropic-ai/claude-code
+  871  claude
+  872  ls
+  873  python obp-cli.py
+  874  ls
+  875  open -a vsc.app tasks.txt
+  876  open -a vsc.app .
+  877  python obp-cli.py
+  878  python obp-cli.py --add-file tasks.txt
+  879  python obp-cli.py --run
+  880  claude
+  881  npm i -g @anthropic-ai/claude-code
+  882  sudo npm i -g @anthropic-ai/claude-code
+  883  claude
+  884  sudo mactop
+  885  docker-compose up --build -d
+  886  ls
+  887  cd workspace
+  888  ls
+  889  php -S localhost:8000
+  890  cd ../
+  891  ls
+  892  python obp-gui.py
+  893  python app.py
+  894  python app.py
+  895  echo \"test message\" | node grok
+  896  node grok chat \"hello\"
+  897  timeout 10 bash -c 'echo -e \"
+sup
+exit\" | node grok' 2>&1
+  898  grok
+  899  git clone https://github.com/royshil/obs-localvocal.git
+  900  ls
+  901  cd obs-localvocal
+  902  $ MACOS_ARCH=\"x86_64\" ./.github/scripts/build-macos -c Release
+  903  MACOS_ARCH=\"x86_64\" ./.github/scripts/build-macos -c Release
+  904  $ ./.github/scripts/package-macos -c Release
+  905  cd desktop
+  906  mkdir claude-goes
+  907  cd claude-goes
+  908  claude
+  909  clear
+  910  cd 
+  911  cd desktop
+  912  mkdir vid
+  913  cd vid
+  914  clear
+  915  curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+  916  node --version
+  917  npm --version
+  918  npm install -g @anthropic-ai/claude-code
+  919  sudo npm install -g @anthropic-ai/claude-code
+  920  claude
+  921  clear
+  922  cd
+  923  clear
+  924  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  925  node --version
+  926  npm --version
+  927  clear
+  928  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  929  node --version
+  930  npm --version
+  931  npm install -g @anthropic-ai/claude-code
+
+  932  sudo npm install -g @anthropic-ai/claude-code
+
+  933  cd desktop
+  934  mkdir cla
+  935  cd cla
+  936  claude
+  937  clear
+  938  cd
+  939  clear
+  940  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  941  npm install -g @anthropic-ai/claude-code
+
+  942  clear
+  943  cd desktop
+  944  mkdir test
+  945  cd test
+  946  claude
+  947  sudo mactop
+  948  cd desktop
+  949  mkdir watch_and_learn
+  950  cd watch_and_learn
+  951  nano context.sh
+  952  curl http://localhost:11434/api/tags
+  953  clear
+  954  ./context_daemon.sh --on
+  955  nano README.md
+  956  chmod +x context_daemon.sh
+  957  ./context_damon --on
+  958  ./context_daemon --on
+  959  ./context_daemon.sh --on
+  960  source /Users/megabrain/.bashrc
+  961  mkdir test
+  962  cd test
+  963  echo \"test\"
+  964  echo \"test\" > file.txt
+  965  ls
+  966  t
+  967  nano app.py
+  968  python app.py
+  969  ./context_daemon.sh --off
+  970  ls
+  971  cd ../
+  972  ./context_daemon.sh --off
+  973  /Users/megabrain/Software/watch_and_learn/context_daemon.sh ; exit;
+  974  rm context_daemon.sh
+  975  nano context_daemon.sh
+  976  ./context_daemon.sh --on
+  977  chmod +x context_daemon.sh
+  978  ./context_daemon.sh --on
+  979  ls
+  980  nano app.py
+  981  python app.py
+  982  learn
+  983  run thing
+  984  s
+  985  tun
+  986  running
+  987  source ~/.zshrc
+  988  source /Users/megabrain/.zshrc
+  989  ls
+  990  ls
+  991  ./context_daemon.sh
+  992  ls
+  993  open -a vsc.app .
+  994  ./context_daemon.sh --on
+  995  mkdir test
+  996  ls
+  997  cd desktop
+  998  ls
+  999  cd inprogress
+ 1000  ls", "exit_code": 0}

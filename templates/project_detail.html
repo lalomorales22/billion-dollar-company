@@ -61,20 +61,20 @@
 }
 
 @keyframes modalFadeIn {
-    from {
+    0% {
         opacity: 0;
     }
-    to {
+    100% {
         opacity: 1;
     }
 }
 
 @keyframes modalSlideIn {
-    from {
-        transform: scale(0.9) translateY(-20px);
+    0% {
+        transform: scale(0.95) translateY(-10px);
         opacity: 0;
     }
-    to {
+    100% {
         transform: scale(1) translateY(0);
         opacity: 1;
     }
@@ -97,17 +97,59 @@ body.modal-open {
     width: 100%;
 }
 
-/* Fix for webkit rendering issues */
+/* Fix for webkit rendering issues and prevent glitching */
 .modal {
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
-    will-change: transform;
+    will-change: auto;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 .modal .window {
-    will-change: transform, opacity;
+    will-change: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transform: translateZ(0);
+}
+
+/* Simplified animations without attribute selectors to prevent loops */
+.modal.show-animation {
+    animation: modalFadeIn 0.2s ease-out forwards;
+}
+
+.modal.show-animation .window {
+    animation: modalSlideIn 0.2s ease-out forwards;
+}
+
+/* Progress bar animation */
+@keyframes pulse {
+    0% {
+        width: 0%;
+        opacity: 0.8;
+    }
+    50% {
+        width: 50%;
+        opacity: 1;
+    }
+    100% {
+        width: 100%;
+        opacity: 0.8;
+    }
+}
+
+/* Spinner animation */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.progress-fill {
+    transition: width 0.5s ease;
 }
 </style>
 <div class="window">
@@ -126,10 +168,15 @@ body.modal-open {
             <div style="text-align: right;">
                 <div class="badge badge-info" style="font-size: 14px; padding: 8px 12px;">
                     Stage {{ project.stage }}/6
-                    {% if project.stage < 6 %}
-                        <span id="auto-run-indicator" style="display: none; margin-left: 8px;">🤖 Auto-Running</span>
-                    {% endif %}
                 </div>
+                {% if project.auto_run %}
+                <div style="margin-top: 10px;">
+                    <div style="display: inline-flex; align-items: center; padding: 6px 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
+                        <span style="margin-right: 6px;">🚀</span>
+                        <span style="color: #155724; font-size: 11px; font-weight: bold;">AUTO-RUN</span>
+                    </div>
+                </div>
+                {% endif %}
                 <div style="margin-top: 10px;">
                     {% if project.status == 'idea' %}
                         <span class="badge">{{ project.status }}</span>
@@ -174,13 +221,22 @@ body.modal-open {
             </div>
         </div>
         
-        {% if project.stage < 6 %}
-        <div style="text-align: center; margin-bottom: 30px;">
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 30px;">
+            {% if project.stage < 6 %}
             <button onclick="advanceStage()" class="btn btn-primary" style="font-size: 14px;">
                 ⚡ Advance to Stage {{ project.stage + 1 }}
             </button>
+            {% endif %}
+            {% if project.completion_percentage == 100 %}
+            <button onclick="exportProject()" class="btn btn-success" style="font-size: 14px;">
+                📦 Export Project (ZIP)
+            </button>
+            {% else %}
+            <button onclick="exportProject()" class="btn" style="font-size: 14px;">
+                📦 Export Project (ZIP)
+            </button>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 </div>
 
@@ -193,6 +249,36 @@ body.modal-open {
             <div class="window-title">📋 Tasks</div>
         </div>
         <div class="window-content">
+            {% set pending_tasks = tasks | selectattr('status', 'equalto', 'pending') | list %}
+            {% if pending_tasks and not project.auto_run %}
+            <div style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>{{ pending_tasks|length }} pending task{{ 's' if pending_tasks|length > 1 else '' }}</strong>
+                        <div style="font-size: 11px; color: #856404; margin-top: 3px;">
+                            Tasks are waiting to be processed
+                        </div>
+                    </div>
+                    <button onclick="startPendingTasks()" class="btn btn-warning" style="padding: 6px 12px; font-size: 12px;">
+                        ⚡ Start All Pending Tasks
+                    </button>
+                </div>
+            </div>
+            {% elif pending_tasks and project.auto_run %}
+            <div style="margin-bottom: 15px; padding: 10px; background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px;">
+                <div style="display: flex; align-items: center;">
+                    <div style="margin-right: 10px;">
+                        <div class="spinner" style="width: 20px; height: 20px; border: 2px solid #0c5460; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    </div>
+                    <div>
+                        <strong>Auto-run enabled</strong>
+                        <div style="font-size: 11px; color: #0c5460; margin-top: 3px;">
+                            Tasks will be processed automatically
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             {% if tasks %}
             <div id="tasks-list" style="max-height: 400px; overflow-y: auto;">
                 {% for task in tasks %}
@@ -210,13 +296,23 @@ body.modal-open {
                                     {% endif %}
                                 </div>
                             </div>
-                            <div>
+                            <div style="text-align: right;">
                                 {% if task.status == 'pending' %}
                                     <span class="badge">Pending</span>
                                 {% elif task.status == 'processing' %}
                                     <span class="badge badge-warning">Processing</span>
+                                    <div style="margin-top: 5px;">
+                                        <div class="progress-bar" style="width: 100px; height: 8px; background: var(--mac-light-gray); border: 1px solid var(--mac-dark-gray); position: relative; overflow: hidden;">
+                                            <div class="progress-fill" style="width: 0%; height: 100%; background: var(--mac-blue); position: absolute; animation: pulse 2s infinite;"></div>
+                                        </div>
+                                    </div>
                                 {% elif task.status == 'completed' %}
                                     <span class="badge badge-success">Complete</span>
+                                    <div style="margin-top: 5px;">
+                                        <div class="progress-bar" style="width: 100px; height: 8px; background: var(--mac-light-gray); border: 1px solid var(--mac-dark-gray);">
+                                            <div style="width: 100%; height: 100%; background: var(--mac-green);"></div>
+                                        </div>
+                                    </div>
                                 {% else %}
                                     <span class="badge badge-danger">{{ task.status }}</span>
                                 {% endif %}
@@ -265,43 +361,6 @@ body.modal-open {
                             {% else %}
                                 <span class="badge badge-danger" style="font-size: 10px;">✗</span>
                             {% endif %}
-                        </div>
-                        
-                        <!-- Modal for this execution -->
-                        <div id="output-modal-{{ execution.id }}" class="modal" style="display: none;">
-                            <div class="modal-content">
-                                <div class="window">
-                                    <div class="window-bar">
-                                        <div class="window-button"></div>
-                                        <div class="window-button"></div>
-                                        <div class="window-button"></div>
-                                        <div class="window-title">{{ execution.agent.icon }} {{ execution.agent.name }} Output</div>
-                                    </div>
-                                    <div class="window-content" style="max-height: 80vh; overflow-y: auto;">
-                                        <div style="margin-bottom: 15px;">
-                                            <strong>Executed:</strong> {{ execution.created_at.strftime('%Y-%m-%d %H:%M:%S') }}<br>
-                                            <strong>Duration:</strong> {{ execution.duration_ms }}ms<br>
-                                            <strong>Cost:</strong> ${{ "%.4f"|format(execution.cost or 0) }}<br>
-                                            <strong>Tokens:</strong> {{ execution.tokens_used or 0 }}
-                                        </div>
-                                        <hr>
-                                        {% if execution.success %}
-                                        <div style="margin-top: 15px;">
-                                            <h4>Output:</h4>
-                                            <div style="background: var(--mac-light-gray); padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; font-size: 12px; line-height: 1.4;">{{ execution.output_response or 'No output generated' }}</div>
-                                        </div>
-                                        {% else %}
-                                        <div style="margin-top: 15px;">
-                                            <h4>Error:</h4>
-                                            <div style="background: #ffe6e6; padding: 15px; border-radius: 5px; color: #cc0000;">{{ execution.error_message or 'Unknown error' }}</div>
-                                        </div>
-                                        {% endif %}
-                                        <div style="text-align: center; margin-top: 20px;">
-                                            <button onclick="closeModal({{ execution.id }})" class="btn">Close</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -355,6 +414,47 @@ body.modal-open {
     </div>
 </div>
 
+<!-- Modals for agent outputs (moved outside main content to prevent glitching) -->
+{% if executions %}
+{% for execution in executions %}
+<div id="output-modal-{{ execution.id }}" class="modal" style="display: none; position: fixed; z-index: 10000;">
+    <div class="modal-content">
+        <div class="window">
+            <div class="window-bar">
+                <div class="window-button"></div>
+                <div class="window-button"></div>
+                <div class="window-button"></div>
+                <div class="window-title">{{ execution.agent.icon }} {{ execution.agent.name }} Output</div>
+            </div>
+            <div class="window-content" style="max-height: 80vh; overflow-y: auto;">
+                <div style="margin-bottom: 15px;">
+                    <strong>Executed:</strong> {{ execution.created_at.strftime('%Y-%m-%d %H:%M:%S') }}<br>
+                    <strong>Duration:</strong> {{ execution.duration_ms }}ms<br>
+                    <strong>Cost:</strong> ${{ "%.4f"|format(execution.cost or 0) }}<br>
+                    <strong>Tokens:</strong> {{ execution.tokens_used or 0 }}
+                </div>
+                <hr>
+                {% if execution.success %}
+                <div style="margin-top: 15px;">
+                    <h4>Output:</h4>
+                    <div style="background: var(--mac-light-gray); padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; font-size: 12px; line-height: 1.4;">{{ execution.output_response or 'No output generated' }}</div>
+                </div>
+                {% else %}
+                <div style="margin-top: 15px;">
+                    <h4>Error:</h4>
+                    <div style="background: #ffe6e6; padding: 15px; border-radius: 5px; color: #cc0000;">{{ execution.error_message or 'Unknown error' }}</div>
+                </div>
+                {% endif %}
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="closeModal({{ execution.id }})" class="btn">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
 <script>
 // Wait for socket to be initialized from base template
 document.addEventListener('DOMContentLoaded', function() {
@@ -364,6 +464,40 @@ document.addEventListener('DOMContentLoaded', function() {
         socket.emit('subscribe_project', {project_id: {{ project.id }}});
     }
 });
+
+function startPendingTasks() {
+    const btn = event.target;
+    btn.innerHTML = '⏳ Starting...';
+    btn.disabled = true;
+    
+    fetch(`/api/projects/{{ project.id }}/start-tasks`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})  // Don't send stage - let it find ALL pending tasks
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof showNotification !== 'undefined') {
+                showNotification('🚀 ' + (data.message || 'Tasks started successfully'), 'success');
+            } else {
+                alert(data.message || 'Tasks started successfully');
+            }
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            alert(data.error || 'Failed to start tasks');
+            btn.innerHTML = '⚡ Start All Pending Tasks';
+            btn.disabled = false;
+        }
+    })
+    .catch(error => {
+        alert('Error starting tasks: ' + error.message);
+        btn.innerHTML = '⚡ Start All Pending Tasks';
+        btn.disabled = false;
+    });
+}
 
 function advanceStage() {
     if (confirm('Advance project to the next stage? This will trigger all agents for the next stage.')) {
@@ -420,7 +554,12 @@ function checkTaskStatus(taskId) {
                     if (data.state === 'SUCCESS' || data.state === 'FAILURE') {
                         clearInterval(interval);
                         if (data.state === 'FAILURE' && data.error) {
-                            alert('Task failed: ' + data.error);
+                            // Check if it's the SQLAlchemy error and handle gracefully
+                            if (data.error.includes('SQLCoreOperations') || data.error.includes('AssertionError')) {
+                                console.log('Celery worker has Python 3.13 compatibility issue, will use synchronous fallback');
+                            } else {
+                                alert('Task failed: ' + data.error);
+                            }
                         }
                         setTimeout(() => location.reload(), 1000);
                     }
@@ -461,6 +600,52 @@ function generateArtifact(type) {
     }
 }
 
+function exportProject() {
+    const btn = event.target;
+    btn.innerHTML = '⏳ Preparing Export...';
+    btn.disabled = true;
+    
+    fetch(`/api/projects/{{ project.id }}/export`, {
+        method: 'GET'
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`Export failed: ${text}`);
+            });
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        // Create a download link and trigger it
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `{{ project.name.replace(' ', '_').lower() }}_export.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        // Use showNotification if available
+        if (typeof showNotification !== 'undefined') {
+            showNotification('📦 Project exported successfully!', 'success');
+        } else {
+            alert('Project exported successfully!');
+        }
+        
+        // Reset button
+        btn.innerHTML = '📦 Export Project (ZIP)';
+        btn.disabled = false;
+    })
+    .catch(error => {
+        console.error('Export error:', error);
+        alert('Failed to export project: ' + error.message);
+        btn.innerHTML = '📦 Export Project (ZIP)';
+        btn.disabled = false;
+    });
+}
+
 // Add artifact generation buttons
 document.addEventListener('DOMContentLoaded', function() {
     // Find the artifacts window by searching for the title text
@@ -492,20 +677,39 @@ document.addEventListener('DOMContentLoaded', function() {
 function showOutputModal(executionId) {
     const modal = document.getElementById('output-modal-' + executionId);
     if (modal) {
+        // Clear any existing animations to prevent loops
+        modal.style.animation = 'none';
+        const modalWindow = modal.querySelector('.window');
+        if (modalWindow) {
+            modalWindow.style.animation = 'none';
+        }
+        
+        // Force browser reflow to reset animations
+        void modal.offsetHeight;
+        
         // Prevent body scrolling when modal is open
         document.body.style.overflow = 'hidden';
         document.body.classList.add('modal-open');
-        modal.style.display = 'flex';
         
-        // Add click outside to close functionality
-        modal.onclick = function(e) {
-            if (e.target === modal) {
-                closeModal(executionId);
-            }
-        };
+        // Show modal with controlled animation
+        modal.style.display = 'flex';
+        modal.classList.add('show-animation');
+        
+        // Remove animation class after animation completes
+        setTimeout(() => {
+            modal.classList.remove('show-animation');
+        }, 200);
+        
+        // Add click outside to close functionality (use setTimeout to prevent immediate trigger)
+        setTimeout(() => {
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    closeModal(executionId);
+                }
+            };
+        }, 100);
         
         // Prevent clicks inside modal content from closing modal
-        const modalWindow = modal.querySelector('.window');
         if (modalWindow) {
             modalWindow.onclick = function(e) {
                 e.stopPropagation();
@@ -525,15 +729,27 @@ function showOutputModal(executionId) {
 function closeModal(executionId) {
     const modal = document.getElementById('output-modal-' + executionId);
     if (modal) {
-        // Restore body scrolling and position
+        // Clear animations first
+        modal.style.animation = 'none';
+        const modalWindow = modal.querySelector('.window');
+        if (modalWindow) {
+            modalWindow.style.animation = 'none';
+        }
+        
+        // Hide modal
+        modal.style.display = 'none';
+        
+        // Restore body scrolling
         document.body.style.overflow = '';
         document.body.style.position = '';
         document.body.style.width = '';
         document.body.classList.remove('modal-open');
-        modal.style.display = 'none';
         
         // Remove click handler
         modal.onclick = null;
+        if (modalWindow) {
+            modalWindow.onclick = null;
+        }
     }
 }
 
